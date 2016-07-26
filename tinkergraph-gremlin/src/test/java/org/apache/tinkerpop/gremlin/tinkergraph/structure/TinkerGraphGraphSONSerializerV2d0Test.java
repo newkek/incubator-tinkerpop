@@ -50,8 +50,6 @@ import static org.junit.Assert.assertTrue;
 
 public class TinkerGraphGraphSONSerializerV2d0Test {
 
-    TinkerGraph baseModern = TinkerFactory.createModern();
-
     // As of TinkerPop 3.2.1 default for GraphSON 2.0 means types enabled.
     Mapper defaultMapperV2d0 = GraphSONMapper.build()
             .version(GraphSONVersion.V2_0)
@@ -71,6 +69,8 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
     public void shouldDeserializeGraphSONIntoTinkerGraphWithPartialTypes() throws IOException {
         GraphWriter writer = getWriter(defaultMapperV2d0);
         GraphReader reader = getReader(defaultMapperV2d0);
+        TinkerGraph baseModern = TinkerFactory.createModern();
+
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             writer.writeGraph(out, baseModern);
             String json = out.toString();
@@ -87,6 +87,8 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
     public void shouldDeserializeGraphSONIntoTinkerGraphWithoutTypes() throws IOException {
         GraphWriter writer = getWriter(noTypesMapperV2d0);
         GraphReader reader = getReader(noTypesMapperV2d0);
+        TinkerGraph baseModern = TinkerFactory.createModern();
+
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             writer.writeGraph(out, baseModern);
             String json = out.toString();
@@ -103,15 +105,19 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
     public void shouldDeserializeGraphSONIntoTinkerGraphKeepingTypes() throws IOException {
         GraphWriter writer = getWriter(defaultMapperV2d0);
         GraphReader reader = getReader(defaultMapperV2d0);
-        Vertex v1 = baseModern.addVertex(T.id, 100L, "name", "kevin", "uuid", UUID.randomUUID());
-        v1.addEdge("hello", baseModern.traversal().V().has("name", "marko").next(), T.id, 101L,
+
+        Graph sampleGraph1 = TinkerFactory.createModern();
+        Vertex v1 = sampleGraph1.addVertex(T.id, 100, "name", "kevin", "theUUID", UUID.randomUUID());
+        Vertex v2 = sampleGraph1.addVertex(T.id, 101L, "name", "henri", "theUUID", UUID.randomUUID());
+        v1.addEdge("hello", v2, T.id, 101L,
                 "uuid", UUID.randomUUID());
+
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            writer.writeGraph(out, baseModern);
+            writer.writeObject(out, sampleGraph1);
             String json = out.toString();
-            TinkerGraph read = TinkerGraph.open();
-            reader.readGraph(new ByteArrayInputStream(json.getBytes()), read);
-            assertTrue(approximateGraphsCheck(baseModern, read));
+
+            TinkerGraph read = reader.readObject(new ByteArrayInputStream(json.getBytes()), TinkerGraph.class);
+            assertTrue(approximateGraphsCheck(sampleGraph1, read));
         }
     }
 
@@ -122,14 +128,15 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
     public void shouldLooseTypesWithGraphSONNoTypesForVertexIds() throws IOException {
         GraphWriter writer = getWriter(noTypesMapperV2d0);
         GraphReader reader = getReader(noTypesMapperV2d0);
-        baseModern.addVertex(T.id, 100L, "name", "kevin");
+        Graph sampleGraph1 = TinkerFactory.createModern();
+        sampleGraph1.addVertex(T.id, 100L, "name", "kevin");
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            writer.writeGraph(out, baseModern);
+            writer.writeGraph(out, sampleGraph1);
             String json = out.toString();
             TinkerGraph read = TinkerGraph.open();
             reader.readGraph(new ByteArrayInputStream(json.getBytes()), read);
             // Should fail on deserialized vertex Id.
-            assertFalse(approximateGraphsCheck(baseModern, read));
+            assertFalse(approximateGraphsCheck(sampleGraph1, read));
         }
     }
 
@@ -140,14 +147,16 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
     public void shouldLooseTypesWithGraphSONNoTypesForVertexProps() throws IOException {
         GraphWriter writer = getWriter(noTypesMapperV2d0);
         GraphReader reader = getReader(noTypesMapperV2d0);
-        baseModern.addVertex(T.id, 100, "name", "kevin", "uuid", UUID.randomUUID());
+        Graph sampleGraph1 = TinkerFactory.createModern();
+
+        sampleGraph1.addVertex(T.id, 100, "name", "kevin", "uuid", UUID.randomUUID());
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            writer.writeGraph(out, baseModern);
+            writer.writeGraph(out, sampleGraph1);
             String json = out.toString();
             TinkerGraph read = TinkerGraph.open();
             reader.readGraph(new ByteArrayInputStream(json.getBytes()), read);
             // Should fail on deserialized vertex prop.
-            assertFalse(approximateGraphsCheck(baseModern, read));
+            assertFalse(approximateGraphsCheck(sampleGraph1, read));
         }
     }
 
@@ -158,15 +167,16 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
     public void shouldLooseTypesWithGraphSONNoTypesForEdgeIds() throws IOException {
         GraphWriter writer = getWriter(noTypesMapperV2d0);
         GraphReader reader = getReader(noTypesMapperV2d0);
-        Vertex v1 = baseModern.addVertex(T.id, 100, "name", "kevin");
-        v1.addEdge("hello", baseModern.traversal().V().has("name", "marko").next(), T.id, 101L);
+        Graph sampleGraph1 = TinkerFactory.createModern();
+        Vertex v1 = sampleGraph1.addVertex(T.id, 100, "name", "kevin");
+        v1.addEdge("hello", sampleGraph1.traversal().V().has("name", "marko").next(), T.id, 101L);
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            writer.writeGraph(out, baseModern);
+            writer.writeGraph(out, sampleGraph1);
             String json = out.toString();
             TinkerGraph read = TinkerGraph.open();
             reader.readGraph(new ByteArrayInputStream(json.getBytes()), read);
             // Should fail on deserialized edge Id.
-            assertFalse(approximateGraphsCheck(baseModern, read));
+            assertFalse(approximateGraphsCheck(sampleGraph1, read));
         }
     }
 
@@ -177,16 +187,18 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
     public void shouldLooseTypesWithGraphSONNoTypesForEdgeProps() throws IOException {
         GraphWriter writer = getWriter(noTypesMapperV2d0);
         GraphReader reader = getReader(noTypesMapperV2d0);
-        Vertex v1 = baseModern.addVertex(T.id, 100, "name", "kevin");
-        v1.addEdge("hello", baseModern.traversal().V().has("name", "marko").next(), T.id, 101,
+        Graph sampleGraph1 = TinkerFactory.createModern();
+
+        Vertex v1 = sampleGraph1.addVertex(T.id, 100, "name", "kevin");
+        v1.addEdge("hello", sampleGraph1.traversal().V().has("name", "marko").next(), T.id, 101,
                 "uuid", UUID.randomUUID());
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            writer.writeGraph(out, baseModern);
+            writer.writeGraph(out, sampleGraph1);
             String json = out.toString();
             TinkerGraph read = TinkerGraph.open();
             reader.readGraph(new ByteArrayInputStream(json.getBytes()), read);
             // Should fail on deserialized edge prop.
-            assertFalse(approximateGraphsCheck(baseModern, read));
+            assertFalse(approximateGraphsCheck(sampleGraph1, read));
         }
     }
 

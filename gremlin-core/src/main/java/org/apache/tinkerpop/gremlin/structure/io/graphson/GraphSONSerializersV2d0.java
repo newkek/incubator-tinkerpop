@@ -377,6 +377,42 @@ public class GraphSONSerializersV2d0 {
         }
     }
 
+    final static class IntegerGraphSONSerializer extends StdSerializer<Integer> {
+        public IntegerGraphSONSerializer() {
+            super(Integer.class);
+        }
+
+        @Override
+        public void serialize(Integer integer, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
+            jsonGenerator.writeNumber(((Integer) integer).intValue());
+        }
+
+        @Override
+        public void serializeWithType(Integer integer, JsonGenerator jsonGenerator, SerializerProvider serializerProvider, TypeSerializer typeSerializer) throws IOException {
+            typeSerializer.writeTypePrefixForScalar(integer, jsonGenerator);
+            serialize(integer, jsonGenerator, serializerProvider);
+            typeSerializer.writeTypeSuffixForScalar(integer, jsonGenerator);
+        }
+    }
+
+    final static class DoubleGraphSONSerializer extends StdSerializer<Double> {
+        public DoubleGraphSONSerializer() {
+            super(Double.class);
+        }
+
+        @Override
+        public void serialize(Double doubleValue, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
+            jsonGenerator.writeNumber(doubleValue);
+        }
+
+        @Override
+        public void serializeWithType(Double doubleValue, JsonGenerator jsonGenerator, SerializerProvider serializerProvider, TypeSerializer typeSerializer) throws IOException {
+            typeSerializer.writeTypePrefixForScalar(doubleValue, jsonGenerator);
+            serialize(doubleValue, jsonGenerator, serializerProvider);
+            typeSerializer.writeTypeSuffixForScalar(doubleValue, jsonGenerator);
+        }
+    }
+
     final static class TraversalMetricsJacksonSerializer extends StdSerializer<TraversalMetrics> {
         public TraversalMetricsJacksonSerializer() {
             super(TraversalMetrics.class);

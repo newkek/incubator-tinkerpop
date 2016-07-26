@@ -141,8 +141,8 @@ public class GraphSONMapperV2d0PartialEmbeddedTypeTest {
     }
 
     @Test
+    // Trying to fail the TypeDeserializer type detection
     public void shouldSerializeDeserializeNestedCollectionsAndMapAndTypedValuesCorrectly() throws Exception {
-        // Trying to fail the TypeDeserializer type detection
         UUID uuid = UUID.randomUUID();
         List myList = new ArrayList<>();
 
@@ -166,15 +166,15 @@ public class GraphSONMapperV2d0PartialEmbeddedTypeTest {
         assertEquals(myList, serializeDeserializeAuto(myList));
 
         // no "@value" property
-        String s = "{\""+GraphSONTokens.VALUETYPE+"\":\"UUID\", \"test\":2}";
+        String s = "{\""+GraphSONTokens.VALUETYPE+"\":\""+GraphSONTokens.GREMLIN_TYPE_DOMAIN+":uuid\", \"test\":2}";
         Map map = new LinkedHashMap<>();
-        map.put(GraphSONTokens.VALUETYPE, "UUID");
+        map.put(GraphSONTokens.VALUETYPE, "gremlin:uuid");
         map.put("test", 2);
         Object res = mapper.readValue(s, Object.class);
         assertEquals(map, res);
 
         // "@value" and "@type" property reversed
-        s = "{\""+GraphSONTokens.VALUEPROP+"\":2, \""+ GraphSONTokens.VALUETYPE+"\":\"Long\"}";
+        s = "{\""+GraphSONTokens.VALUEPROP+"\":2, \""+ GraphSONTokens.VALUETYPE+"\":\""+GraphSONTokens.GREMLIN_TYPE_DOMAIN+":int64\"}";
         res = mapper.readValue(s, Object.class);
         assertEquals(res, 2L);
         assertEquals(res.getClass(), Long.class);
@@ -190,14 +190,14 @@ public class GraphSONMapperV2d0PartialEmbeddedTypeTest {
 
     @Test
     public void shouldFailIfMoreThanTwoPropertiesInATypePattern() {
-        String s = "{\"" + GraphSONTokens.VALUEPROP + "\":2, \"" + GraphSONTokens.VALUETYPE + "\":\"Long\", \"hello\": \"world\"}";
+        String s = "{\"" + GraphSONTokens.VALUEPROP + "\":2, \"" + GraphSONTokens.VALUETYPE + "\":\""+GraphSONTokens.GREMLIN_TYPE_DOMAIN+":int64\", \"hello\": \"world\"}";
         try {
             mapper.readValue(s, Object.class);
             fail("Should have failed deserializing because there's more than properties in the type.");
         } catch (IOException e) {
             assertThat(e.getMessage(), containsString("Detected the type pattern in the JSON payload but the map containing the types and values contains other fields. This is not allowed by the deserializer."));
         }
-        s = "{\"" + GraphSONTokens.VALUETYPE + "\":\"Long\",\"" + GraphSONTokens.VALUEPROP + "\":2, \"hello\": \"world\"}";
+        s = "{\"" + GraphSONTokens.VALUETYPE + "\":\""+GraphSONTokens.GREMLIN_TYPE_DOMAIN+":int64\",\"" + GraphSONTokens.VALUEPROP + "\":2, \"hello\": \"world\"}";
         try {
             mapper.readValue(s, Object.class);
             fail("Should have failed deserializing because there's more than properties in the type.");
@@ -217,7 +217,7 @@ public class GraphSONMapperV2d0PartialEmbeddedTypeTest {
             mapper.readValue(inputStream, Instant.class);
             fail("Should have failed decoding the value");
         } catch (Exception e) {
-            assertThat(e.getMessage(), containsString("Could not deserialize the JSON value as required. Cannot deserialize the value with the detected type contained in the JSON (\"ZoneOffset\") to the type specified in parameter to the object mapper (class java.time.Instant). Those types are incompatible."));
+            assertThat(e.getMessage(), containsString("Could not deserialize the JSON value as required. Cannot deserialize the value with the detected type contained in the JSON (\""+GraphSONTokens.GREMLIN_TYPE_DOMAIN+":zoneoffset\") to the type specified in parameter to the object mapper (class java.time.Instant). Those types are incompatible."));
         }
     }
 

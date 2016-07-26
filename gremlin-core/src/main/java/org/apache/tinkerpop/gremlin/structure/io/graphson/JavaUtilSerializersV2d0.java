@@ -103,9 +103,9 @@ final class JavaUtilSerializersV2d0 {
         public void serializeWithType(final ByteBuffer entry, final JsonGenerator jsonGenerator,
                                       final SerializerProvider serializerProvider, final TypeSerializer typeSerializer) throws IOException {
 
-            typeSerializer.writeCustomTypePrefixForScalar(entry, jsonGenerator, "ByteBuffer");
+            typeSerializer.writeCustomTypePrefixForScalar(entry, jsonGenerator, GraphSONTokens.GREMLIN_TYPE_DOMAIN+":bytebuffer");
             ser(entry, jsonGenerator, serializerProvider);
-            typeSerializer.writeCustomTypeSuffixForScalar(entry, jsonGenerator, "ByteBuffer");
+            typeSerializer.writeCustomTypeSuffixForScalar(entry, jsonGenerator, GraphSONTokens.GREMLIN_TYPE_DOMAIN+":bytebuffer");
         }
 
         private void ser(final ByteBuffer entry, final JsonGenerator jsonGenerator,

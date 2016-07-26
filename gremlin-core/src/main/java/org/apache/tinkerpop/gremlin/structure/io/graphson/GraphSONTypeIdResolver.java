@@ -23,23 +23,9 @@ import org.apache.tinkerpop.shaded.jackson.databind.DatabindContext;
 import org.apache.tinkerpop.shaded.jackson.databind.JavaType;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeIdResolver;
 import org.apache.tinkerpop.shaded.jackson.databind.type.TypeFactory;
-import org.apache.tinkerpop.shaded.jackson.databind.util.TokenBuffer;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Provides quick lookup for Type deserialization extracted from the JSON payload. As well as the Java Object to types
@@ -51,45 +37,21 @@ public class GraphSONTypeIdResolver implements TypeIdResolver {
 
     private final Map<String, JavaType> idToType = new HashMap<>();
 
-    GraphSONTypeIdResolver() {
-        // Need to add all the "Standard typed scalar" classes manually...
-        Arrays.asList(
-                Float.class,
-                Long.class,
-                Short.class,
-                BigInteger.class,
-                BigDecimal.class,
-                Byte.class,
-                Character.class,
-                UUID.class,
-                InetAddress.class,
-                InetSocketAddress.class,
-                ByteBuffer.class,
-                Class.class,
-                Calendar.class,
-                Date.class,
-                TimeZone.class,
-                Timestamp.class,
-                AtomicBoolean.class,
-                AtomicReference.class,
-                TokenBuffer.class
-        ).forEach(e -> idToType.put(e.getSimpleName(), TypeFactory.defaultInstance().constructType(e)));
-    }
+    private final Map<Class, String> typeToId = new HashMap<>();
 
     public Map<String, JavaType> getIdToType() {
         return idToType;
     }
 
-    public GraphSONTypeIdResolver addCustomType(Class clasz) {
-        // May override types already registered, that's wanted.
-        getIdToType().put(clasz.getSimpleName(), TypeFactory.defaultInstance().constructType(clasz));
-        return this;
+    public Map<Class, String> getTypeToId() {
+        return typeToId;
     }
 
     // Override manually a type definition.
     public GraphSONTypeIdResolver addCustomType(String name, Class clasz) {
         // May override types already registered, that's wanted.
         getIdToType().put(name, TypeFactory.defaultInstance().constructType(clasz));
+        getTypeToId().put(clasz, name);
         return this;
     }
 
@@ -99,13 +61,19 @@ public class GraphSONTypeIdResolver implements TypeIdResolver {
 
     @Override
     public String idFromValue(Object o) {
-        return idFromValueAndType(o, null);
+        return idFromValueAndType(o, o.getClass());
     }
 
     @Override
     public String idFromValueAndType(Object o, Class<?> aClass) {
-        // May be improved later
-        return o.getClass().getSimpleName();
+        // If one wants to serialize an object with a type, but hasn't registered
+        // a typeID for that class, fail.
+        if (!getTypeToId().containsKey(aClass)) {
+            throw new IllegalArgumentException(String.format("Could not find a type identifier for the Class : %s. " +
+                    "Make sure the value to serialize has a type identifier registered for its Class.", aClass));
+        } else {
+            return getTypeToId().get(aClass);
+        }
     }
 
     @Override
@@ -121,7 +89,7 @@ public class GraphSONTypeIdResolver implements TypeIdResolver {
     @Override
     public JavaType typeFromId(DatabindContext databindContext, String s) {
         // Get the type from the string from the stored Map. If not found, default to deserialize as a String.
-        return getIdToType().get(s) != null
+        return getIdToType().containsKey(s)
                 ? getIdToType().get(s)
                 // TODO: shouldn't we fail instead, if the type is not found? Or log something?
                 : TypeFactory.defaultInstance().constructType(String.class);
@@ -129,7 +97,7 @@ public class GraphSONTypeIdResolver implements TypeIdResolver {
 
     @Override
     public String getDescForKnownTypeIds() {
-        // TODO (?)
+        // TODO: Not sure what to put here.
         return "GraphSON advanced typing system";
     }
 

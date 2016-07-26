@@ -119,6 +119,20 @@ public final class TinkerIoRegistryV2d0 extends AbstractIoRegistry {
             addSerializer(TinkerGraph.class, new TinkerGraphJacksonSerializer());
             addDeserializer(TinkerGraph.class, new TinkerGraphJacksonDeserializer());
         }
+
+        @Override
+        public Map<Class, String> getTypeDefinitions() {
+            // null if fine and handled by the GraphSONMapper for now.
+            // TODO: implement for tinkergraph
+            return null;
+        }
+
+        @Override
+        public String getTypeDomain() {
+            // null if fine and handled by the GraphSONMapper for now.
+            // TODO: implement for tinkergraph
+            return null;
+        }
     }
 
     /**

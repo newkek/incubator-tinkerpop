@@ -29,11 +29,24 @@ import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeResolverBuilder
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.impl.StdTypeResolverBuilder;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.DefaultSerializerProvider;
+import org.apache.tinkerpop.shaded.jackson.databind.util.TokenBuffer;
 import org.javatuples.Pair;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * An extension to the standard Jackson {@code ObjectMapper} which automatically registers the standard
@@ -105,16 +118,29 @@ public class GraphSONMapper implements Mapper<ObjectMapper> {
                         .typeProperty(GraphSONTokens.VALUETYPE)
                         ;
 
-                // Register types to typeResolver for the GraphSON module
-                for (Map.Entry<String, Class> typeDeser : graphSONModule.getAddedDeserializers().entrySet()) {
-                    graphSONTypeIdResolver.addCustomType(typeDeser.getKey(), typeDeser.getValue());
-                }
+                // Registers native Java types that are supported by Jackson
+                registerJavaBaseTypes(graphSONTypeIdResolver);
+
+                // Registers the GraphSON Module's types
+                graphSONModule.getTypeDefinitions()
+                        .forEach(
+                                (targetClass, typeId) -> graphSONTypeIdResolver.addCustomType(String.format("%s:%s", graphSONModule.getTypeDomain(), typeId), targetClass)
+                        );
+
 
                 // Register types to typeResolver for the Custom modules
                 customModules.forEach(e -> {
                     if (e instanceof TinkerPopJacksonModule) {
-                        for (Map.Entry<String, Class> typeDeser : ((TinkerPopJacksonModule) e).getAddedDeserializers().entrySet()) {
-                            graphSONTypeIdResolver.addCustomType(typeDeser.getKey(), typeDeser.getValue());
+                        TinkerPopJacksonModule mod = (TinkerPopJacksonModule) e;
+                        Map<Class, String> moduleTypeDefinitions = mod.getTypeDefinitions();
+                        if (moduleTypeDefinitions != null) {
+                            if (mod.getTypeDomain() == null || mod.getTypeDomain().isEmpty()) {
+                                throw new IllegalStateException("Cannot specify a module for GraphSON 2.0 with type definitions but without a type Domain. " +
+                                        "If no specific type domain is required, use Gremlin's default domain, \"gremlin\" but there may be collisions.");
+                            }
+                            moduleTypeDefinitions.forEach(
+                                    (targetClass, typeId) -> graphSONTypeIdResolver.addCustomType(String.format("%s:%s", mod.getTypeDomain(), typeId), targetClass)
+                            );
                         }
                     }
                 });
@@ -146,6 +172,27 @@ public class GraphSONMapper implements Mapper<ObjectMapper> {
 
     public TypeInfo getTypeInfo() {
         return this.typeInfo;
+    }
+
+
+    private void registerJavaBaseTypes(GraphSONTypeIdResolver graphSONTypeIdResolver) {
+        Arrays.asList(
+                BigInteger.class,
+                BigDecimal.class,
+                Byte.class,
+                Character.class,
+                UUID.class,
+                InetAddress.class,
+                InetSocketAddress.class,
+                Class.class,
+                Calendar.class,
+                Date.class,
+                TimeZone.class,
+                Timestamp.class,
+                AtomicBoolean.class,
+                AtomicReference.class,
+                TokenBuffer.class
+        ).forEach(e -> graphSONTypeIdResolver.addCustomType(String.format("%s:%s", GraphSONTokens.GREMLIN_TYPE_DOMAIN, e.getSimpleName().toLowerCase()), e));
     }
 
     public static class Builder implements Mapper.Builder<Builder> {

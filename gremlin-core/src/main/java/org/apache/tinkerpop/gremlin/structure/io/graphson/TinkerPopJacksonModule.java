@@ -18,10 +18,8 @@
  */
 package org.apache.tinkerpop.gremlin.structure.io.graphson;
 
-import org.apache.tinkerpop.shaded.jackson.databind.JsonDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -38,21 +36,13 @@ import java.util.Map;
  *
  * @author Kevin Gallardo (https://kgdo.me)
  */
-public class TinkerPopJacksonModule extends SimpleModule {
-
-    private Map<String, Class> addedDeserializers = new LinkedHashMap<>();
+public abstract class TinkerPopJacksonModule extends SimpleModule {
 
     public TinkerPopJacksonModule(String name) {
         super(name);
     }
 
-    @Override
-    public <T> SimpleModule addDeserializer(Class<T> type, JsonDeserializer<? extends T> deser) {
-        addedDeserializers.put(type.getSimpleName(), type);
-        return super.addDeserializer(type, deser);
-    }
+    public abstract Map<Class, String> getTypeDefinitions();
 
-    public Map<String, Class> getAddedDeserializers() {
-        return addedDeserializers;
-    }
+    public abstract String getTypeDomain();
 }

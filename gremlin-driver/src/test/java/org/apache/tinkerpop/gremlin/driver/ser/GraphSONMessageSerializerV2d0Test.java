@@ -205,9 +205,9 @@ public class GraphSONMessageSerializerV2d0Test {
         final JsonNode jsonObject = json.get(SerTokens.TOKEN_RESULT).get(SerTokens.TOKEN_DATA);
         jsonObject.elements().forEachRemaining(e -> {
             if (e.has("x"))
-                assertEquals(1, e.get("x").asInt());
+                assertEquals(1, e.get("x").get(GraphSONTokens.VALUEPROP).asInt());
             else if (e.has(v1.id().toString()))
-                assertEquals(100, e.get(v1.id().toString()).asInt());
+                assertEquals(100, e.get(v1.id().toString()).get(GraphSONTokens.VALUEPROP).asInt());
             else if (e.has(StdDateFormat.instance.format(d)))
                 assertEquals("test", e.get(StdDateFormat.instance.format(d)).asText());
             else
@@ -246,7 +246,7 @@ public class GraphSONMessageSerializerV2d0Test {
 
         final JsonNode properties = edgeAsJson.get(GraphSONTokens.PROPERTIES);
         assertNotNull(properties);
-        assertEquals(123, properties.get("abc").asInt());
+        assertEquals(123, properties.get("abc").get(GraphSONTokens.VALUEPROP).asInt());
     }
 
     @Test
@@ -272,7 +272,7 @@ public class GraphSONMessageSerializerV2d0Test {
         final JsonNode propertyAsJson = converted.get(0);
         assertNotNull(propertyAsJson);
 
-        assertEquals(123, propertyAsJson.get("value").asInt());
+        assertEquals(123, propertyAsJson.get("value").get(GraphSONTokens.VALUEPROP).asInt());
     }
 
     @Test
@@ -317,11 +317,11 @@ public class GraphSONMessageSerializerV2d0Test {
         final String object1 = friendsProperty.get(GraphSONTokens.VALUE).get(0).asText();
         assertEquals("x", object1);
 
-        final int object2 = friendsProperty.get(GraphSONTokens.VALUE).get(1).asInt();
+        final int object2 = friendsProperty.get(GraphSONTokens.VALUE).get(1).get(GraphSONTokens.VALUEPROP).asInt();
         assertEquals(5, object2);
 
         final JsonNode object3 = friendsProperty.get(GraphSONTokens.VALUE).get(2);
-        assertEquals(500, object3.get("x").asInt());
+        assertEquals(500, object3.get("x").get(GraphSONTokens.VALUEPROP).asInt());
         assertEquals("some", object3.get("y").asText());
     }
 
@@ -343,7 +343,7 @@ public class GraphSONMessageSerializerV2d0Test {
 
         // with no embedded types the key (which is a vertex) simply serializes out to an id
         // {"result":{"1":1000},"code":200,"requestId":"2d62161b-9544-4f39-af44-62ec49f9a595","type":0}
-        assertEquals(1000, converted.get("1").asInt());
+        assertEquals(1000, converted.get("1").get(GraphSONTokens.VALUEPROP).asInt());
     }
 
     @Test
@@ -421,7 +421,7 @@ public class GraphSONMessageSerializerV2d0Test {
         assertNotNull(converted);
         
         //check the first object and it's properties
-        assertEquals(1, converted.get("1").get("key").get("id").asInt());
+        assertEquals(1, converted.get("1").get("key").get("id").get(GraphSONTokens.VALUEPROP).asInt());
         assertEquals("marko", converted.get("1").get("key").get("properties").get("name").get(0).get("value").asText());
         
         //check objects tree structure

@@ -44,6 +44,7 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -87,6 +88,10 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
             addSerializer(Map.Entry.class, new JavaUtilSerializersV2d0.MapEntryJacksonSerializer());
             addSerializer(ByteBuffer.class, new JavaUtilSerializersV2d0.GraphSONByteBufferSerializer());
 
+            // need to explicitly add serializers for those types because Jackson doesn't do it at all.
+            addSerializer(Integer.class, new GraphSONSerializersV2d0.IntegerGraphSONSerializer());
+            addSerializer(Double.class, new GraphSONSerializersV2d0.DoubleGraphSONSerializer());
+
             // java.time
             addSerializer(Duration.class, new JavaTimeSerializersV2d0.DurationJacksonSerializer());
             addSerializer(Instant.class, new JavaTimeSerializersV2d0.InstantJacksonSerializer());
@@ -119,6 +124,40 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
 
         public static Builder build() {
             return new Builder();
+        }
+
+        @Override
+        public Map<Class, String> getTypeDefinitions() {
+            return new LinkedHashMap<Class, String>(){{
+                // Those don't have deserializers because handled by Jackson,
+                // but we still want to rename them in GraphSON
+                put(ByteBuffer.class, "bytebuffer");
+                put(Short.class, "int16");
+                put(Integer.class, "int32");
+                put(Long.class, "int64");
+                put(Double.class, "double");
+                put(Float.class, "float");
+
+                // Time serializers/deserializers
+                put(Duration.class, "duration");
+                put(Instant.class, "instant");
+                put(LocalDate.class, "localdate");
+                put(LocalDateTime.class, "localdatetime");
+                put(LocalTime.class, "localtime");
+                put(MonthDay.class, "monthday");
+                put(OffsetDateTime.class, "offsetdatetime");
+                put(OffsetTime.class, "offsettime");
+                put(Period.class, "period");
+                put(Year.class, "year");
+                put(YearMonth.class, "yearmonth");
+                put(ZonedDateTime.class, "zoneddatetime");
+                put(ZoneOffset.class, "zoneoffset");
+            }};
+        }
+
+        @Override
+        public String getTypeDomain() {
+            return GraphSONTokens.GREMLIN_TYPE_DOMAIN;
         }
 
         static final class Builder implements GraphSONModuleBuilder {
@@ -189,6 +228,18 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
 
         public static Builder build() {
             return new Builder();
+        }
+
+        @Override
+        public Map<Class, String> getTypeDefinitions() {
+            // null is fine and handled by the GraphSONMapper
+            return null;
+        }
+
+        @Override
+        public String getTypeDomain() {
+            // null is fine and handled by the GraphSONMapper
+            return null;
         }
 
         static final class Builder implements GraphSONModuleBuilder {
