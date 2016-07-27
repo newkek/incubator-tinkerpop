@@ -79,7 +79,7 @@ public class DetachedEdge extends DetachedElement<Edge> implements Edge {
         super(id, label);
         this.outVertex = new DetachedVertex(outV.getValue0(), outV.getValue1(), Collections.emptyMap());
         this.inVertex = new DetachedVertex(inV.getValue0(), inV.getValue1(), Collections.emptyMap());
-        if (!properties.isEmpty()) {
+        if (properties != null && !properties.isEmpty()) {
             this.properties = new HashMap<>();
             properties.entrySet().stream().forEach(entry -> this.properties.put(entry.getKey(), Collections.singletonList(new DetachedProperty<>(entry.getKey(), entry.getValue(), this))));
         }

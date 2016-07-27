@@ -18,6 +18,12 @@
  */
 package org.apache.tinkerpop.gremlin.structure.io.graphson;
 
+import org.apache.tinkerpop.gremlin.process.traversal.Path;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonTypeInfo;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
 import org.apache.tinkerpop.shaded.jackson.databind.BeanProperty;
@@ -25,6 +31,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeIdResolver;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
  * Extension of the Jackson's default TypeSerializer. An instance of this object will be passed to the serializers
@@ -70,7 +77,7 @@ public class GraphSONTypeSerializer extends TypeSerializer {
     @Override
     public void writeTypePrefixForScalar(Object o, JsonGenerator jsonGenerator) throws IOException {
         if (canWriteTypeId()) {
-            writeTypePrefix(jsonGenerator, getTypeIdResolver().idFromValue(o));
+            writeTypePrefix(jsonGenerator, getTypeIdResolver().idFromValueAndType(o, getClassFromObject(o)));
         }
     }
 
@@ -156,5 +163,26 @@ public class GraphSONTypeSerializer extends TypeSerializer {
 
     private void writeTypeSuffix(JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeEndObject();
+    }
+
+    private Class getClassFromObject(Object o) {
+        // not the most efficient
+        Class c = o.getClass();
+        if (Vertex.class.isAssignableFrom(c)) {
+            return Vertex.class;
+        } else if (Edge.class.isAssignableFrom(c)) {
+            return Edge.class;
+        } else if (Path.class.isAssignableFrom(c)) {
+            return Path.class;
+        } else if (VertexProperty.class.isAssignableFrom(c)) {
+            return VertexProperty.class;
+        } else if (Property.class.isAssignableFrom(c)) {
+            return Property.class;
+        } else if (Graph.class.isAssignableFrom(c)) {
+            return Graph.class;
+        } else if (ByteBuffer.class.isAssignableFrom(c)) {
+            return ByteBuffer.class;
+        }
+        return c;
     }
 }

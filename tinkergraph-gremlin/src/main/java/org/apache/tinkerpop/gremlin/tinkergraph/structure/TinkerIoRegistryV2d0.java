@@ -45,6 +45,7 @@ import org.apache.tinkerpop.shaded.kryo.io.Input;
 import org.apache.tinkerpop.shaded.kryo.io.Output;
 import org.javatuples.Pair;
 
+import java.beans.VetoableChangeListener;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -198,42 +199,25 @@ public final class TinkerIoRegistryV2d0 extends AbstractIoRegistry {
         public TinkerGraph deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
             final TinkerGraph graph = TinkerGraph.open();
 
-            final List<Map<String, Object>> edges;
-            final List<Map<String, Object>> vertices;
-            if (!jsonParser.getCurrentToken().isStructStart()) {
-                if (!jsonParser.getCurrentName().equals(GraphSONTokens.VERTICES))
-                    throw new IOException(String.format("Expected a '%s' key", GraphSONTokens.VERTICES));
+            final List<? extends Edge> edges;
+            final List<? extends Vertex> vertices;
 
-                jsonParser.nextToken();
+            final Map<String, Object> graphData = deserializationContext.readValue(jsonParser, Map.class);
+            vertices = (List<DetachedVertex>) graphData.get(GraphSONTokens.VERTICES);
+            edges = (List<DetachedEdge>) graphData.get(GraphSONTokens.EDGES);
 
-                vertices = deserializationContext.readValue(jsonParser, List.class);
-                jsonParser.nextToken();
 
-                if (!jsonParser.getCurrentName().equals(GraphSONTokens.EDGES))
-                    throw new IOException(String.format("Expected a '%s' key", GraphSONTokens.EDGES));
+            vertices.forEach(e -> {
+                if (e instanceof DetachedVertex) {
+                    ((DetachedVertex)e).attach(Attachable.Method.getOrCreate(graph));
+                }
+            });
 
-                jsonParser.nextToken();
-                edges = (List<Map<String, Object>>) deserializationContext.readValue(jsonParser, List.class);
-
-            } else {
-                final Map<String, Object> graphData = deserializationContext.readValue(jsonParser, Map.class);
-                vertices = (List<Map<String,Object>>) graphData.get(GraphSONTokens.VERTICES);
-                edges = (List<Map<String,Object>>) graphData.get(GraphSONTokens.EDGES);
-            }
-
-            for (Map<String, Object> vertexData : vertices) {
-                final DetachedVertex detached = new DetachedVertex(vertexData.get(GraphSONTokens.ID),
-                        vertexData.get(GraphSONTokens.LABEL).toString(), (Map<String,Object>) vertexData.get(GraphSONTokens.PROPERTIES));
-                detached.attach(Attachable.Method.getOrCreate(graph));
-            }
-
-            for (Map<String, Object> edgeData : edges) {
-                final DetachedEdge detached = new DetachedEdge(edgeData.get(GraphSONTokens.ID),
-                        edgeData.get(GraphSONTokens.LABEL).toString(), (Map<String,Object>) edgeData.get(GraphSONTokens.PROPERTIES),
-                        Pair.with(edgeData.get(GraphSONTokens.OUT), edgeData.get(GraphSONTokens.OUT_LABEL).toString()),
-                        Pair.with(edgeData.get(GraphSONTokens.IN), edgeData.get(GraphSONTokens.IN_LABEL).toString()));
-                detached.attach(Attachable.Method.getOrCreate(graph));
-            }
+            edges.forEach(e -> {
+                if (e instanceof DetachedEdge) {
+                    ((DetachedEdge) e).attach(Attachable.Method.getOrCreate(graph));
+                }
+            });
 
             return graph;
         }

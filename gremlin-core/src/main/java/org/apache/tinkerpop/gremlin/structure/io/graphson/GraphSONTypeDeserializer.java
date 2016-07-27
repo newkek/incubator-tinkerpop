@@ -177,7 +177,8 @@ public class GraphSONTypeDeserializer extends TypeDeserializerBase {
                 }
             }
         } catch (Exception e) {
-            throw deserializationContext.mappingException("Could not deserialize the JSON value as required. " + e.getMessage());
+            e.printStackTrace();
+            throw deserializationContext.mappingException("Could not deserialize the JSON value as required. Nested exception : " + e.toString());
         }
 
         // While searching for the type pattern, we may have moved the cursor of the original JsonParser in param.

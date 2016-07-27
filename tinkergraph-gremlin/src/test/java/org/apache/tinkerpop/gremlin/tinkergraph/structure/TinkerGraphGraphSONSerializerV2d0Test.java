@@ -240,6 +240,84 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
         }
     }
 
+
+    @Test
+    public void deserializersTestsVertex() {
+        TinkerGraph tg = TinkerGraph.open();
+
+        Vertex v = tg.addVertex("vertexTest");
+        UUID uuidProp = UUID.randomUUID();
+
+        GraphWriter writer = getWriter(defaultMapperV2d0);
+        GraphReader reader = getReader(defaultMapperV2d0);
+
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            writer.writeObject(out, v);
+            String json = out.toString();
+
+            // Object works, because there's a type in the payload now
+            // Vertex.class would work as well
+            // Anything else would not because we check the type in param here with what's in the JSON, for safety.
+            Object vRead = reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void deserializersTestsEdge() {
+        TinkerGraph tg = TinkerGraph.open();
+
+        Vertex v = tg.addVertex("vertexTest");
+        Vertex v2 = tg.addVertex("vertexTest");
+
+        Edge ed = v.addEdge("knows", v2);
+
+        GraphWriter writer = getWriter(defaultMapperV2d0);
+        GraphReader reader = getReader(defaultMapperV2d0);
+
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            writer.writeObject(out, ed);
+            String json = out.toString();
+
+            // Object works, because there's a type in the payload now
+            // Edge.class would work as well
+            // Anything else would not because we check the type in param here with what's in the JSON, for safety.
+            Object eRead = reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void deserializersTestsTinkerGraph() {
+        TinkerGraph tg = TinkerGraph.open();
+
+        Vertex v = tg.addVertex("vertexTest");
+        Vertex v2 = tg.addVertex("vertexTest");
+
+        Edge ed = v.addEdge("knows", v2);
+
+        GraphWriter writer = getWriter(defaultMapperV2d0);
+        GraphReader reader = getReader(defaultMapperV2d0);
+
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            writer.writeObject(out, tg);
+            String json = out.toString();
+
+            // Here, need to explicitly put TinkerGraph.class to call the right Deserializer
+            // because I haven't put the types for in the TinkerGraph serializer yet.
+            // Though, it would be pretty straightforward.
+            Object eRead = reader.readObject(new ByteArrayInputStream(json.getBytes()), TinkerGraph.class);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     private GraphWriter getWriter(Mapper paramMapper) {
         return GraphSONWriter.build().mapper(paramMapper).create();
     }

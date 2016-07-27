@@ -31,17 +31,25 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.Comparators;
+import org.apache.tinkerpop.gremlin.structure.util.detached.DetachedEdge;
+import org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertex;
 import org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerationException;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
+import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
 import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
+import org.apache.tinkerpop.shaded.jackson.core.JsonToken;
+import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
+import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
+import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdKeySerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 import org.javatuples.Pair;
 
+import javax.swing.tree.TreeNode;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -143,11 +151,15 @@ public class GraphSONSerializersV2d0 {
 
         private void ser(final Edge edge, final JsonGenerator jsonGenerator,
                          final SerializerProvider serializerProvider, final TypeSerializer typeSerializer) throws IOException {
+            if (typeSerializer != null) {
+                typeSerializer.writeTypePrefixForScalar(edge, jsonGenerator);
+            }
+
             writeStartObject(edge, jsonGenerator, typeSerializer);
 
             GraphSONUtil.writeWithType(GraphSONTokens.ID, edge.id(), jsonGenerator, serializerProvider, typeSerializer);
             jsonGenerator.writeStringField(GraphSONTokens.LABEL, edge.label());
-            jsonGenerator.writeStringField(GraphSONTokens.TYPE, GraphSONTokens.EDGE);
+//            jsonGenerator.writeStringField(GraphSONTokens.TYPE, GraphSONTokens.EDGE);
             jsonGenerator.writeStringField(GraphSONTokens.IN_LABEL, edge.inVertex().label());
             jsonGenerator.writeStringField(GraphSONTokens.OUT_LABEL, edge.outVertex().label());
             GraphSONUtil.writeWithType(GraphSONTokens.IN, edge.inVertex().id(), jsonGenerator, serializerProvider, typeSerializer);
@@ -155,6 +167,10 @@ public class GraphSONSerializersV2d0 {
             writeProperties(edge, jsonGenerator, serializerProvider, typeSerializer);
 
             writeEndObject(edge, jsonGenerator, typeSerializer);
+
+            if (typeSerializer != null) {
+                typeSerializer.writeTypeSuffixForScalar(edge, jsonGenerator);
+            }
         }
 
         private void writeProperties(final Edge edge, final JsonGenerator jsonGenerator,
@@ -201,14 +217,22 @@ public class GraphSONSerializersV2d0 {
         private void ser(final Vertex vertex, final JsonGenerator jsonGenerator,
                          final SerializerProvider serializerProvider, final TypeSerializer typeSerializer)
                 throws IOException {
+            if (typeSerializer != null) {
+                typeSerializer.writeTypePrefixForScalar(vertex, jsonGenerator);
+            }
+
             writeStartObject(vertex, jsonGenerator, typeSerializer);
 
             GraphSONUtil.writeWithType(GraphSONTokens.ID, vertex.id(), jsonGenerator, serializerProvider, typeSerializer);
             jsonGenerator.writeStringField(GraphSONTokens.LABEL, vertex.label());
-            jsonGenerator.writeStringField(GraphSONTokens.TYPE, GraphSONTokens.VERTEX);
+//            jsonGenerator.writeStringField(GraphSONTokens.TYPE, GraphSONTokens.VERTEX);
             writeProperties(vertex, jsonGenerator, serializerProvider, typeSerializer);
 
             writeEndObject(vertex, jsonGenerator, typeSerializer);
+
+            if (typeSerializer != null) {
+                typeSerializer.writeTypeSuffixForScalar(vertex, jsonGenerator);
+            }
         }
 
         private void writeProperties(final Vertex vertex, final JsonGenerator jsonGenerator,
@@ -469,7 +493,8 @@ public class GraphSONSerializersV2d0 {
 
         GraphSONUtil.writeWithType(GraphSONTokens.ID, property.id(), jsonGenerator, serializerProvider, typeSerializer);
         GraphSONUtil.writeWithType(GraphSONTokens.VALUE, property.value(), jsonGenerator, serializerProvider, typeSerializer);
-        if (includeLabel) jsonGenerator.writeStringField(GraphSONTokens.LABEL, property.label());
+        if (includeLabel)
+            jsonGenerator.writeStringField(GraphSONTokens.LABEL, property.label());
         tryWriteMetaProperties(property, jsonGenerator, serializerProvider, typeSerializer, normalize);
 
         writeEndObject(property, jsonGenerator, typeSerializer);
@@ -510,6 +535,51 @@ public class GraphSONSerializersV2d0 {
         writeEndObject(property, jsonGenerator, typeSerializer);
     }
 
+
+    static class VertexJacksonDeserializer extends StdDeserializer<Vertex> {
+
+        protected VertexJacksonDeserializer() {
+            super(Vertex.class);
+        }
+
+        @Override
+        public Vertex deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+
+            jsonParser.nextToken();
+            // This will automatically parse VertexProperties and other typed stuff automatically.
+            Map<String, Object> vertexData = deserializationContext.readValue(jsonParser, Map.class);
+
+            final DetachedVertex detached = new DetachedVertex(
+                    vertexData.get(GraphSONTokens.ID),
+                    vertexData.get(GraphSONTokens.LABEL).toString(),
+                    (Map<String, Object>) vertexData.get(GraphSONTokens.PROPERTIES)
+            );
+            return detached;
+        }
+    }
+
+    static class EdgeJacksonDeserializer extends StdDeserializer<Edge> {
+
+        protected EdgeJacksonDeserializer() {
+            super(Edge.class);
+        }
+
+        @Override
+        public Edge deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+
+            jsonParser.nextToken();
+            // This will automatically parse Properties and other typed stuff automatically.
+            Map<String, Object> edgeData = deserializationContext.readValue(jsonParser, Map.class);
+
+            final DetachedEdge detached = new DetachedEdge(
+                    edgeData.get(GraphSONTokens.ID),
+                    edgeData.get(GraphSONTokens.LABEL).toString(), (Map<String, Object>) edgeData.get(GraphSONTokens.PROPERTIES),
+                    Pair.with(edgeData.get(GraphSONTokens.OUT), edgeData.get(GraphSONTokens.OUT_LABEL).toString()),
+                    Pair.with(edgeData.get(GraphSONTokens.IN), edgeData.get(GraphSONTokens.IN_LABEL).toString())
+            );
+            return detached;
+        }
+    }
 }
 
 

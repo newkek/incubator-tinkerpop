@@ -73,6 +73,8 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
         protected GraphSONModuleV2d0(final boolean normalize) {
             super("graphson-2.0");
 
+            /////////////////////// SERIALIZERS ////////////////////////////
+
             // graph
             addSerializer(Edge.class, new GraphSONSerializersV2d0.EdgeJacksonSerializer(normalize));
             addSerializer(Vertex.class, new GraphSONSerializersV2d0.VertexJacksonSerializer(normalize));
@@ -106,6 +108,12 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
             addSerializer(YearMonth.class, new JavaTimeSerializersV2d0.YearMonthJacksonSerializer());
             addSerializer(ZonedDateTime.class, new JavaTimeSerializersV2d0.ZonedDateTimeJacksonSerializer());
             addSerializer(ZoneOffset.class, new JavaTimeSerializersV2d0.ZoneOffsetJacksonSerializer());
+
+            /////////////////////// DESERIALIZERS ////////////////////////////
+
+            // Domain objects
+            addDeserializer(Vertex.class, new GraphSONSerializersV2d0.VertexJacksonDeserializer());
+            addDeserializer(Edge.class, new GraphSONSerializersV2d0.EdgeJacksonDeserializer());
 
             addDeserializer(Duration.class, new JavaTimeSerializersV2d0.DurationJacksonDeserializer());
             addDeserializer(Instant.class, new JavaTimeSerializersV2d0.InstantJacksonDeserializer());
@@ -152,6 +160,10 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
                 put(YearMonth.class, "yearmonth");
                 put(ZonedDateTime.class, "zoneddatetime");
                 put(ZoneOffset.class, "zoneoffset");
+
+                // Tinkerpop objects
+                put(Vertex.class, "vertex");
+                put(Edge.class, "edge");
             }};
         }
 
