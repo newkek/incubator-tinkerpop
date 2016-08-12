@@ -40,6 +40,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.time.Year;
 import java.util.Iterator;
 import java.util.UUID;
 
@@ -306,6 +307,34 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             writer.writeObject(out, tg);
             String json = out.toString();
 
+            Object eRead = reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void deserializersTestsProperty() {
+        TinkerGraph tg = TinkerGraph.open();
+
+        Vertex v = tg.addVertex("vertexTest");
+        Vertex v2 = tg.addVertex("vertexTest");
+
+        Edge ed = v.addEdge("knows", v2);
+
+        GraphWriter writer = getWriter(defaultMapperV2d0);
+        GraphReader reader = getReader(defaultMapperV2d0);
+
+        Property prop = ed.property("since", Year.parse("1993"));
+
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            writer.writeObject(out, prop);
+            String json = out.toString();
+            
+            // Object works, because there's a type in the payload now
+            // Edge.class would work as well
+            // Anything else would not because we check the type in param here with what's in the JSON, for safety.
             Object eRead = reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
 
         } catch (IOException e) {

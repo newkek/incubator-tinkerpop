@@ -32,6 +32,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.Comparators;
 import org.apache.tinkerpop.gremlin.structure.util.detached.DetachedEdge;
+import org.apache.tinkerpop.gremlin.structure.util.detached.DetachedProperty;
 import org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertex;
 import org.apache.tinkerpop.gremlin.structure.util.detached.DetachedVertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -39,8 +40,6 @@ import org.apache.tinkerpop.shaded.jackson.core.JsonGenerationException;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
 import org.apache.tinkerpop.shaded.jackson.core.JsonParser;
 import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
-import org.apache.tinkerpop.shaded.jackson.core.JsonToken;
-import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
@@ -49,7 +48,6 @@ import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdKeySerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 import org.javatuples.Pair;
 
-import javax.swing.tree.TreeNode;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -118,12 +116,18 @@ public class GraphSONSerializersV2d0 {
 
         private static void ser(final Property property, final JsonGenerator jsonGenerator,
                                 final SerializerProvider serializerProvider, final TypeSerializer typeSerializer) throws IOException {
+            if (typeSerializer != null) {
+                typeSerializer.writeTypePrefixForScalar(property, jsonGenerator);
+            }
             writeStartObject(property, jsonGenerator, typeSerializer);
 
             serializerProvider.defaultSerializeField(GraphSONTokens.KEY, property.key(), jsonGenerator);
             serializerProvider.defaultSerializeField(GraphSONTokens.VALUE, property.value(), jsonGenerator);
 
             writeEndObject(property, jsonGenerator, typeSerializer);
+            if (typeSerializer != null) {
+                typeSerializer.writeTypeSuffixForScalar(property, jsonGenerator);
+            }
         }
     }
 
@@ -577,6 +581,23 @@ public class GraphSONSerializersV2d0 {
                     Pair.with(edgeData.get(GraphSONTokens.OUT), edgeData.get(GraphSONTokens.OUT_LABEL).toString()),
                     Pair.with(edgeData.get(GraphSONTokens.IN), edgeData.get(GraphSONTokens.IN_LABEL).toString())
             );
+            return detached;
+        }
+    }
+
+    static class PropertyJacksonDeserializer extends StdDeserializer<Property> {
+
+        protected PropertyJacksonDeserializer() {
+            super(Property.class);
+        }
+
+        @Override
+        public Property deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+
+            jsonParser.nextToken();
+            Map<String, Object> propData = deserializationContext.readValue(jsonParser, Map.class);
+
+            final DetachedProperty detached = new DetachedProperty((String)propData.get(GraphSONTokens.KEY), propData.get(GraphSONTokens.VALUE));
             return detached;
         }
     }
