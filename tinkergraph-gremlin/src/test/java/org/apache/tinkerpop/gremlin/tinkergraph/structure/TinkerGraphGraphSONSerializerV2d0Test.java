@@ -246,7 +246,6 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
         TinkerGraph tg = TinkerGraph.open();
 
         Vertex v = tg.addVertex("vertexTest");
-        UUID uuidProp = UUID.randomUUID();
 
         GraphWriter writer = getWriter(defaultMapperV2d0);
         GraphReader reader = getReader(defaultMapperV2d0);
@@ -307,10 +306,7 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             writer.writeObject(out, tg);
             String json = out.toString();
 
-            // Here, need to explicitly put TinkerGraph.class to call the right Deserializer
-            // because I haven't put the types for in the TinkerGraph serializer yet.
-            // Though, it would be pretty straightforward.
-            Object eRead = reader.readObject(new ByteArrayInputStream(json.getBytes()), TinkerGraph.class);
+            Object eRead = reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
 
         } catch (IOException e) {
             e.printStackTrace();

@@ -111,7 +111,7 @@ public class GraphSONTypeDeserializer extends TypeDeserializerBase {
 
         // Detect type
         try {
-            // The Type pattern is START_OBJECT -> TEXT_FIELD(propertyName) -> TEXT_FIELD(valueProp).
+            // The Type pattern is START_OBJECT -> TEXT_FIELD(propertyName) && TEXT_FIELD(valueProp).
             if (jsonParser.getCurrentToken() == JsonToken.START_OBJECT) {
                 buf.writeStartObject();
                 String typeName = null;
@@ -136,8 +136,10 @@ public class GraphSONTypeDeserializer extends TypeDeserializerBase {
                     }
                     if (nextFieldName.equals(this.valuePropertyName)) {
                         jsonParser.nextValue();
-                        // keeping the spare buffer up to date in case it's a false detection (only the "@type" property)
+                        // keeping the spare buffer up to date in case it's a false detection (only the "@value" property)
                         buf.writeFieldName(this.valuePropertyName);
+                        // this is not greatly efficient, would need to find better
+                        // but the problem is that the fields "@value" and "@type" could be in any order
                         localCopy.copyCurrentStructure(jsonParser);
                         valueCalled = true;
                         continue;
@@ -184,11 +186,11 @@ public class GraphSONTypeDeserializer extends TypeDeserializerBase {
         // While searching for the type pattern, we may have moved the cursor of the original JsonParser in param.
         // To compensate, we have filled consistently a TokenBuffer that should contain the equivalent of
         // what we skipped while searching for the pattern.
-        // This has an huge positive impact on performances, since JsonParser does not have a 'rewind()',
+        // This has a huge positive impact on performances, since JsonParser does not have a 'rewind()',
         // the only other solution would have been to copy the whole original JsonParser. Which we avoid here and use
         // an efficient structure made of TokenBuffer + JsonParserSequence/Concat.
 
-        // Concatenate buf + localCopy + end of Json
+        // Concatenate buf + localCopy + end of original content
 
         JsonParser toUseParser;
         JsonParser bufferParser = buf.asParser();

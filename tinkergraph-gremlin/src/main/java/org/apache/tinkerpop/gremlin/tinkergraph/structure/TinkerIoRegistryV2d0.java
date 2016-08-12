@@ -43,12 +43,11 @@ import org.apache.tinkerpop.shaded.kryo.Kryo;
 import org.apache.tinkerpop.shaded.kryo.Serializer;
 import org.apache.tinkerpop.shaded.kryo.io.Input;
 import org.apache.tinkerpop.shaded.kryo.io.Output;
-import org.javatuples.Pair;
 
-import java.beans.VetoableChangeListener;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -111,7 +110,7 @@ public final class TinkerIoRegistryV2d0 extends AbstractIoRegistry {
     }
 
     /**
-     * Provides a method to serialize an entire {@link org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph} into itself for GraphSON.  This is useful when
+     * Provides a method to serialize an entire {@link org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph} into itself for GraphSON. This is useful when
      * shipping small graphs around through Gremlin Server.
      */
     final static class TinkerModuleV2d0 extends TinkerPopJacksonModule {
@@ -124,15 +123,15 @@ public final class TinkerIoRegistryV2d0 extends AbstractIoRegistry {
         @Override
         public Map<Class, String> getTypeDefinitions() {
             // null if fine and handled by the GraphSONMapper for now.
-            // TODO: implement for tinkergraph
-            return null;
+            return new HashMap<Class, String>(){{
+                put(TinkerGraph.class, "graph");
+            }};
         }
 
         @Override
         public String getTypeDomain() {
             // null if fine and handled by the GraphSONMapper for now.
-            // TODO: implement for tinkergraph
-            return null;
+            return "gremlin";
         }
     }
 
@@ -164,6 +163,9 @@ public final class TinkerIoRegistryV2d0 extends AbstractIoRegistry {
 
         private void ser(final TinkerGraph graph, final JsonGenerator jsonGenerator,
                          final SerializerProvider serializerProvider, final TypeSerializer typeSerializer) throws IOException {
+            if (typeSerializer != null) {
+                typeSerializer.writeTypePrefixForScalar(graph, jsonGenerator);
+            }
             GraphSONUtil.writeStartObject(graph, jsonGenerator, typeSerializer);
             jsonGenerator.writeFieldName(GraphSONTokens.VERTICES);
             GraphSONUtil.writeStartArray(graph, jsonGenerator, typeSerializer);
@@ -184,6 +186,9 @@ public final class TinkerIoRegistryV2d0 extends AbstractIoRegistry {
 
             GraphSONUtil.writeEndArray(graph, jsonGenerator, typeSerializer);
             GraphSONUtil.writeEndObject(graph, jsonGenerator, typeSerializer);
+            if (typeSerializer != null) {
+                typeSerializer.writeTypeSuffixForScalar(graph, jsonGenerator);
+            }
         }
     }
 
@@ -202,6 +207,7 @@ public final class TinkerIoRegistryV2d0 extends AbstractIoRegistry {
             final List<? extends Edge> edges;
             final List<? extends Vertex> vertices;
 
+            jsonParser.nextToken();
             final Map<String, Object> graphData = deserializationContext.readValue(jsonParser, Map.class);
             vertices = (List<DetachedVertex>) graphData.get(GraphSONTokens.VERTICES);
             edges = (List<DetachedEdge>) graphData.get(GraphSONTokens.EDGES);

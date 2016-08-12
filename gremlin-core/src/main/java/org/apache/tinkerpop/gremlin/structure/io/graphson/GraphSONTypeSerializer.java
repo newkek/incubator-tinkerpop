@@ -165,6 +165,12 @@ public class GraphSONTypeSerializer extends TypeSerializer {
         jsonGenerator.writeEndObject();
     }
 
+    /* We force only **one** translation of a Java object to a domain specific object.
+     i.e. users register typeIDs and serializers/deserializers for the predefined
+     types we have in the spec. Graph, Vertex, Edge, VertexProperty, etc... And
+     **not** their implementations (TinkerGraph, DetachedVertex, TinkerEdge,
+     etc..)
+    */
     private Class getClassFromObject(Object o) {
         // not the most efficient
         Class c = o.getClass();
@@ -178,8 +184,6 @@ public class GraphSONTypeSerializer extends TypeSerializer {
             return VertexProperty.class;
         } else if (Property.class.isAssignableFrom(c)) {
             return Property.class;
-        } else if (Graph.class.isAssignableFrom(c)) {
-            return Graph.class;
         } else if (ByteBuffer.class.isAssignableFrom(c)) {
             return ByteBuffer.class;
         }
