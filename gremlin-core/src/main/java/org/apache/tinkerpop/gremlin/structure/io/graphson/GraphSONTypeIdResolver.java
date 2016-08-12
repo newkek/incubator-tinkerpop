@@ -66,9 +66,9 @@ public class GraphSONTypeIdResolver implements TypeIdResolver {
 
     @Override
     public String idFromValueAndType(Object o, Class<?> aClass) {
-        // If one wants to serialize an object with a type, but hasn't registered
-        // a typeID for that class, fail.
         if (!getTypeToId().containsKey(aClass)) {
+            // If one wants to serialize an object with a type, but hasn't registered
+            // a typeID for that class, fail.
             throw new IllegalArgumentException(String.format("Could not find a type identifier for the class : %s. " +
                     "Make sure the value to serialize has a type identifier registered for its class.", aClass));
         } else {
