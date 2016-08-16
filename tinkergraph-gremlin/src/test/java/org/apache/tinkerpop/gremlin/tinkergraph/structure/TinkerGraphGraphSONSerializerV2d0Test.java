@@ -249,6 +249,8 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
         TinkerGraph tg = TinkerGraph.open();
 
         Vertex v = tg.addVertex("vertexTest");
+        v.property("born", LocalDateTime.of(1971, 1, 2, 20, 50));
+        v.property("dead", LocalDateTime.of(1971, 1, 7, 20, 50));
 
         GraphWriter writer = getWriter(defaultMapperV2d0);
         GraphReader reader = getReader(defaultMapperV2d0);
@@ -260,8 +262,7 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             // Object works, because there's a type in the payload now
             // Vertex.class would work as well
             // Anything else would not because we check the type in param here with what's in the JSON, for safety.
-            Object vRead = reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
-
+            Vertex vRead = (Vertex)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -331,7 +332,7 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             writer.writeObject(out, prop);
             String json = out.toString();
-            
+
             Property pRead = (Property)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
         } catch (IOException e) {
             e.printStackTrace();
@@ -345,15 +346,37 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
         GraphWriter writer = getWriter(defaultMapperV2d0);
         GraphReader reader = getReader(defaultMapperV2d0);
 
+        Path p = tg.traversal().V(1).as("a").has("name").as("b").
+                out("knows").out("created").as("c").
+                has("name", "ripple").values("name").as("d").
+                identity().as("e").path().next();
 
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            writer.writeObject(out, tg.traversal().V(1).as("a").has("name").as("b").
-                    out("knows").out("created").as("c").
-                    has("name", "ripple").values("name").as("d").
-                    identity().as("e").path().next());
+            writer.writeObject(out, p);
             String json = out.toString();
 
             Path pathRead = (Path)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void deserializersTestsVertexProperty () {
+        TinkerGraph tg = TinkerGraph.open();
+
+        Vertex v = tg.addVertex("vertexTest");
+
+        GraphWriter writer = getWriter(defaultMapperV2d0);
+        GraphReader reader = getReader(defaultMapperV2d0);
+
+        VertexProperty prop = v.property("born", LocalDateTime.of(1971, 1, 2, 20, 50));
+
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            writer.writeObject(out, prop);
+            String json = out.toString();
+
+            VertexProperty vPropRead = (VertexProperty)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
         } catch (IOException e) {
             e.printStackTrace();
         }

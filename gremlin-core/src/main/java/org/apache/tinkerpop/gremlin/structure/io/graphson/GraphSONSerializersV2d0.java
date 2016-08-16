@@ -256,6 +256,7 @@ public class GraphSONSerializersV2d0 {
                     writeStartArray(vertex, jsonGenerator, typeSerializer);
 
                     while (vertexProperties.hasNext()) {
+                        // TODO IMPORTANT: discuss about setting true the last arg, to serialize labels of VertexProperties.
                         serializerVertexProperty(vertexProperties.next(), jsonGenerator, serializerProvider, typeSerializer, normalize, false);
                     }
 
@@ -501,6 +502,9 @@ public class GraphSONSerializersV2d0 {
                                                  final SerializerProvider serializerProvider,
                                                  final TypeSerializer typeSerializer, final boolean normalize,
                                                  final boolean includeLabel) throws IOException {
+        if (typeSerializer != null) {
+            typeSerializer.writeTypePrefixForScalar(property, jsonGenerator);
+        }
         writeStartObject(property, jsonGenerator, typeSerializer);
 
         GraphSONUtil.writeWithType(GraphSONTokens.ID, property.id(), jsonGenerator, serializerProvider, typeSerializer);
@@ -510,6 +514,9 @@ public class GraphSONSerializersV2d0 {
         tryWriteMetaProperties(property, jsonGenerator, serializerProvider, typeSerializer, normalize);
 
         writeEndObject(property, jsonGenerator, typeSerializer);
+        if (typeSerializer != null) {
+            typeSerializer.writeTypeSuffixForScalar(property, jsonGenerator);
+        }
     }
 
     private static void tryWriteMetaProperties(final VertexProperty property, final JsonGenerator jsonGenerator,
@@ -624,14 +631,35 @@ public class GraphSONSerializersV2d0 {
             Map<String, Object> pathData = deserializationContext.readValue(jsonParser, Map.class);
             Path p = MutablePath.make();
 
-            List labels = (List)pathData.get(GraphSONTokens.LABELS);
-            List objects = (List)pathData.get(GraphSONTokens.OBJECTS);
+            List labels = (List) pathData.get(GraphSONTokens.LABELS);
+            List objects = (List) pathData.get(GraphSONTokens.OBJECTS);
 
             for (int i = 0; i < objects.size(); i++) {
-                p.extend(objects.get(i), new HashSet((List)labels.get(i)));
+                p.extend(objects.get(i), new HashSet((List) labels.get(i)));
             }
 
             return p;
+        }
+    }
+
+    static class VertexPropertyJacksonDeserializer extends StdDeserializer<VertexProperty> {
+
+        protected VertexPropertyJacksonDeserializer() {
+            super(VertexProperty.class);
+        }
+
+        @Override
+        public VertexProperty deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+
+            jsonParser.nextToken();
+            Map<String, Object> propData = deserializationContext.readValue(jsonParser, Map.class);
+
+            final DetachedVertexProperty detached = new DetachedVertexProperty(propData.get(GraphSONTokens.ID),
+                    (String)propData.get(GraphSONTokens.LABEL),
+                    propData.get(GraphSONTokens.VALUE),
+                    (Map)propData.get(GraphSONTokens.PROPERTIES)
+                    );
+            return detached;
         }
     }
 }
