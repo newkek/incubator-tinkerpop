@@ -21,6 +21,7 @@ package org.apache.tinkerpop.gremlin.structure.io.graphson;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy;
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.MutablePath;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.Tree;
 import org.apache.tinkerpop.gremlin.process.traversal.util.Metrics;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalExplanation;
@@ -52,6 +53,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -188,7 +190,7 @@ public class GraphSONSerializersV2d0 {
 
                 while (elementProperties.hasNext()) {
                     final Property<Object> elementProperty = elementProperties.next();
-                    GraphSONUtil.writeWithType(elementProperty.key(), elementProperty.value(), jsonGenerator, serializerProvider, typeSerializer);
+                    jsonGenerator.writeObjectField(elementProperty.key(), elementProperty);
                 }
 
                 writeEndObject(edge, jsonGenerator, typeSerializer);
@@ -287,12 +289,18 @@ public class GraphSONSerializersV2d0 {
 
         private static void ser(final Path path, final JsonGenerator jsonGenerator, final TypeSerializer typeSerializer)
                 throws IOException {
+            if (typeSerializer != null) {
+                typeSerializer.writeTypePrefixForScalar(path, jsonGenerator);
+            }
             writeStartObject(path, jsonGenerator, typeSerializer);
 
             jsonGenerator.writeObjectField(GraphSONTokens.LABELS, path.labels());
             jsonGenerator.writeObjectField(GraphSONTokens.OBJECTS, path.objects());
 
             writeEndObject(path, jsonGenerator, typeSerializer);
+            if (typeSerializer != null) {
+                typeSerializer.writeTypeSuffixForScalar(path, jsonGenerator);
+            }
         }
 
     }
@@ -577,7 +585,8 @@ public class GraphSONSerializersV2d0 {
 
             final DetachedEdge detached = new DetachedEdge(
                     edgeData.get(GraphSONTokens.ID),
-                    edgeData.get(GraphSONTokens.LABEL).toString(), (Map<String, Object>) edgeData.get(GraphSONTokens.PROPERTIES),
+                    edgeData.get(GraphSONTokens.LABEL).toString(),
+                    (Map)edgeData.get(GraphSONTokens.PROPERTIES),
                     Pair.with(edgeData.get(GraphSONTokens.OUT), edgeData.get(GraphSONTokens.OUT_LABEL).toString()),
                     Pair.with(edgeData.get(GraphSONTokens.IN), edgeData.get(GraphSONTokens.IN_LABEL).toString())
             );
@@ -595,10 +604,34 @@ public class GraphSONSerializersV2d0 {
         public Property deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
 
             jsonParser.nextToken();
-            Map<String, Object> propData = deserializationContext.readValue(jsonParser, Map.class);
+            Map propData = deserializationContext.readValue(jsonParser, Map.class);
 
             final DetachedProperty detached = new DetachedProperty((String)propData.get(GraphSONTokens.KEY), propData.get(GraphSONTokens.VALUE));
             return detached;
+        }
+    }
+
+    static class PathJacksonDeserializer extends StdDeserializer<Path> {
+
+        protected PathJacksonDeserializer() {
+            super(Path.class);
+        }
+
+        @Override
+        public Path deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+
+            jsonParser.nextToken();
+            Map<String, Object> pathData = deserializationContext.readValue(jsonParser, Map.class);
+            Path p = MutablePath.make();
+
+            List labels = (List)pathData.get(GraphSONTokens.LABELS);
+            List objects = (List)pathData.get(GraphSONTokens.OBJECTS);
+
+            for (int i = 0; i < objects.size(); i++) {
+                p.extend(objects.get(i), new HashSet((List)labels.get(i)));
+            }
+
+            return p;
         }
     }
 }

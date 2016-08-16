@@ -115,6 +115,7 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
             addDeserializer(Vertex.class, new GraphSONSerializersV2d0.VertexJacksonDeserializer());
             addDeserializer(Edge.class, new GraphSONSerializersV2d0.EdgeJacksonDeserializer());
             addDeserializer(Property.class, new GraphSONSerializersV2d0.PropertyJacksonDeserializer());
+            addDeserializer(Path.class, new GraphSONSerializersV2d0.PathJacksonDeserializer());
 
             // java.time
             addDeserializer(Duration.class, new JavaTimeSerializersV2d0.DurationJacksonDeserializer());
@@ -167,6 +168,7 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
                 put(Vertex.class, "vertex");
                 put(Edge.class, "edge");
                 put(Property.class, "property");
+                put(Path.class, "path");
             }};
         }
 

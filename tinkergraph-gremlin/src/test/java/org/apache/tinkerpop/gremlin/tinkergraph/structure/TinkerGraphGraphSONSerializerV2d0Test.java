@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
@@ -40,6 +41,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.Iterator;
 import java.util.UUID;
@@ -272,7 +274,7 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
         Vertex v = tg.addVertex("vertexTest");
         Vertex v2 = tg.addVertex("vertexTest");
 
-        Edge ed = v.addEdge("knows", v2);
+        Edge ed = v.addEdge("knows", v2, "time", LocalDateTime.now());
 
         GraphWriter writer = getWriter(defaultMapperV2d0);
         GraphReader reader = getReader(defaultMapperV2d0);
@@ -284,8 +286,7 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             // Object works, because there's a type in the payload now
             // Edge.class would work as well
             // Anything else would not because we check the type in param here with what's in the JSON, for safety.
-            Object eRead = reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
-
+            Edge eRead = (Edge)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -307,8 +308,7 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             writer.writeObject(out, tg);
             String json = out.toString();
 
-            Object eRead = reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
-
+            Graph eRead = (Graph)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -332,16 +332,32 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             writer.writeObject(out, prop);
             String json = out.toString();
             
-            // Object works, because there's a type in the payload now
-            // Edge.class would work as well
-            // Anything else would not because we check the type in param here with what's in the JSON, for safety.
-            Object eRead = reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
-
+            Property pRead = (Property)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    @Test
+    public void deserializersTestsPath() {
+        TinkerGraph tg = TinkerFactory.createModern();
+
+        GraphWriter writer = getWriter(defaultMapperV2d0);
+        GraphReader reader = getReader(defaultMapperV2d0);
+
+
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            writer.writeObject(out, tg.traversal().V(1).as("a").has("name").as("b").
+                    out("knows").out("created").as("c").
+                    has("name", "ripple").values("name").as("d").
+                    identity().as("e").path().next());
+            String json = out.toString();
+
+            Path pathRead = (Path)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     private GraphWriter getWriter(Mapper paramMapper) {
         return GraphSONWriter.build().mapper(paramMapper).create();

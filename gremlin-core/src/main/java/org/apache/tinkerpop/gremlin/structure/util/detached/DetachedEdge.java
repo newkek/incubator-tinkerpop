@@ -81,10 +81,15 @@ public class DetachedEdge extends DetachedElement<Edge> implements Edge {
         this.inVertex = new DetachedVertex(inV.getValue0(), inV.getValue1(), Collections.emptyMap());
         if (properties != null && !properties.isEmpty()) {
             this.properties = new HashMap<>();
-            properties.entrySet().stream().forEach(entry -> this.properties.put(entry.getKey(), Collections.singletonList(new DetachedProperty<>(entry.getKey(), entry.getValue(), this))));
+            properties.entrySet().stream().forEach(entry -> {
+                if (Property.class.isAssignableFrom(entry.getValue().getClass())) {
+                    this.properties.put(entry.getKey(), Collections.singletonList((Property)entry.getValue()));
+                } else {
+                    this.properties.put(entry.getKey(), Collections.singletonList(new DetachedProperty<>(entry.getKey(), entry.getValue(), this)));
+                }
+            });
         }
     }
-
     @Override
     public String toString() {
         return StringFactory.edgeString(this);
