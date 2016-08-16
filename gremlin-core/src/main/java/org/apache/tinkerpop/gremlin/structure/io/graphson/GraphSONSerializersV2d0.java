@@ -76,6 +76,8 @@ public class GraphSONSerializersV2d0 {
     private GraphSONSerializersV2d0() {
     }
 
+    ////////////////////////////// SERIALIZERS /////////////////////////////////
+
     final static class VertexPropertyJacksonSerializer extends StdSerializer<VertexProperty> {
 
         private final boolean normalize;
@@ -555,19 +557,36 @@ public class GraphSONSerializersV2d0 {
     }
 
 
-    static class VertexJacksonDeserializer extends StdDeserializer<Vertex> {
+    //////////////////////////// DESERIALIZERS ///////////////////////////
 
-        protected VertexJacksonDeserializer() {
+    abstract static class AbstractGraphObjectDeserializer<T> extends StdDeserializer<T> {
+
+        protected AbstractGraphObjectDeserializer(Class<T> clazz) {
+            super(clazz);
+        }
+
+        @Override
+        public T deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+
+            jsonParser.nextToken();
+            // This will automatically parse all typed stuff.
+            Map<String, Object> mapData = deserializationContext.readValue(jsonParser, Map.class);
+
+            return createObject(mapData);
+        }
+
+        abstract T createObject(Map<String, Object> data);
+    }
+
+
+    static class VertexJacksonDeserializer extends AbstractGraphObjectDeserializer<Vertex> {
+
+        public VertexJacksonDeserializer() {
             super(Vertex.class);
         }
 
         @Override
-        public Vertex deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
-
-            jsonParser.nextToken();
-            // This will automatically parse VertexProperties and other typed stuff automatically.
-            Map<String, Object> vertexData = deserializationContext.readValue(jsonParser, Map.class);
-
+        Vertex createObject(Map<String, Object> vertexData) {
             final DetachedVertex detached = new DetachedVertex(
                     vertexData.get(GraphSONTokens.ID),
                     vertexData.get(GraphSONTokens.LABEL).toString(),
@@ -577,23 +596,18 @@ public class GraphSONSerializersV2d0 {
         }
     }
 
-    static class EdgeJacksonDeserializer extends StdDeserializer<Edge> {
+    static class EdgeJacksonDeserializer extends AbstractGraphObjectDeserializer<Edge> {
 
-        protected EdgeJacksonDeserializer() {
+        public EdgeJacksonDeserializer() {
             super(Edge.class);
         }
 
         @Override
-        public Edge deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
-
-            jsonParser.nextToken();
-            // This will automatically parse Properties and other typed stuff automatically.
-            Map<String, Object> edgeData = deserializationContext.readValue(jsonParser, Map.class);
-
+        Edge createObject(Map<String, Object> edgeData) {
             final DetachedEdge detached = new DetachedEdge(
                     edgeData.get(GraphSONTokens.ID),
                     edgeData.get(GraphSONTokens.LABEL).toString(),
-                    (Map)edgeData.get(GraphSONTokens.PROPERTIES),
+                    (Map) edgeData.get(GraphSONTokens.PROPERTIES),
                     Pair.with(edgeData.get(GraphSONTokens.OUT), edgeData.get(GraphSONTokens.OUT_LABEL).toString()),
                     Pair.with(edgeData.get(GraphSONTokens.IN), edgeData.get(GraphSONTokens.IN_LABEL).toString())
             );
@@ -601,34 +615,29 @@ public class GraphSONSerializersV2d0 {
         }
     }
 
-    static class PropertyJacksonDeserializer extends StdDeserializer<Property> {
+    static class PropertyJacksonDeserializer extends AbstractGraphObjectDeserializer<Property> {
 
-        protected PropertyJacksonDeserializer() {
+        public PropertyJacksonDeserializer() {
             super(Property.class);
         }
 
         @Override
-        public Property deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
-
-            jsonParser.nextToken();
-            Map propData = deserializationContext.readValue(jsonParser, Map.class);
-
-            final DetachedProperty detached = new DetachedProperty((String)propData.get(GraphSONTokens.KEY), propData.get(GraphSONTokens.VALUE));
+        Property createObject(Map<String, Object> propData) {
+            final DetachedProperty detached = new DetachedProperty(
+                    (String) propData.get(GraphSONTokens.KEY),
+                    propData.get(GraphSONTokens.VALUE));
             return detached;
         }
     }
 
-    static class PathJacksonDeserializer extends StdDeserializer<Path> {
+    static class PathJacksonDeserializer extends AbstractGraphObjectDeserializer<Path> {
 
-        protected PathJacksonDeserializer() {
+        public PathJacksonDeserializer() {
             super(Path.class);
         }
 
         @Override
-        public Path deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
-
-            jsonParser.nextToken();
-            Map<String, Object> pathData = deserializationContext.readValue(jsonParser, Map.class);
+        Path createObject(Map<String, Object> pathData) {
             Path p = MutablePath.make();
 
             List labels = (List) pathData.get(GraphSONTokens.LABELS);
@@ -637,28 +646,24 @@ public class GraphSONSerializersV2d0 {
             for (int i = 0; i < objects.size(); i++) {
                 p.extend(objects.get(i), new HashSet((List) labels.get(i)));
             }
-
             return p;
         }
     }
 
-    static class VertexPropertyJacksonDeserializer extends StdDeserializer<VertexProperty> {
+    static class VertexPropertyJacksonDeserializer extends AbstractGraphObjectDeserializer<VertexProperty> {
 
         protected VertexPropertyJacksonDeserializer() {
             super(VertexProperty.class);
         }
 
         @Override
-        public VertexProperty deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
-
-            jsonParser.nextToken();
-            Map<String, Object> propData = deserializationContext.readValue(jsonParser, Map.class);
-
-            final DetachedVertexProperty detached = new DetachedVertexProperty(propData.get(GraphSONTokens.ID),
-                    (String)propData.get(GraphSONTokens.LABEL),
+        VertexProperty createObject(Map<String, Object> propData) {
+            final DetachedVertexProperty detached = new DetachedVertexProperty(
+                    propData.get(GraphSONTokens.ID),
+                    (String) propData.get(GraphSONTokens.LABEL),
                     propData.get(GraphSONTokens.VALUE),
-                    (Map)propData.get(GraphSONTokens.PROPERTIES)
-                    );
+                    (Map) propData.get(GraphSONTokens.PROPERTIES)
+            );
             return detached;
         }
     }
