@@ -84,33 +84,4 @@ final class JavaUtilSerializersV2d0 {
             serializerProvider.defaultSerializeField(k, entry.getValue(), jsonGenerator);
         }
     }
-
-    final static class GraphSONByteBufferSerializer extends StdSerializer<ByteBuffer> {
-
-        ByteBufferSerializer byteBufferSerializer;
-
-        public GraphSONByteBufferSerializer() {
-            super(ByteBuffer.class);
-            byteBufferSerializer = new ByteBufferSerializer();
-        }
-
-        @Override
-        public void serialize(ByteBuffer byteBuffer, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
-            ser(byteBuffer, jsonGenerator, serializerProvider);
-        }
-
-        @Override
-        public void serializeWithType(final ByteBuffer entry, final JsonGenerator jsonGenerator,
-                                      final SerializerProvider serializerProvider, final TypeSerializer typeSerializer) throws IOException {
-
-            typeSerializer.writeTypePrefixForScalar(entry, jsonGenerator);
-            ser(entry, jsonGenerator, serializerProvider);
-            typeSerializer.writeTypeSuffixForScalar(entry, jsonGenerator);
-        }
-
-        private void ser(final ByteBuffer entry, final JsonGenerator jsonGenerator,
-                                final SerializerProvider serializerProvider) throws IOException {
-            byteBufferSerializer.serialize(entry, jsonGenerator, serializerProvider);
-        }
-    }
 }

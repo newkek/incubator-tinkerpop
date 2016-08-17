@@ -90,7 +90,6 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
 
             // java.util
             addSerializer(Map.Entry.class, new JavaUtilSerializersV2d0.MapEntryJacksonSerializer());
-            addSerializer(ByteBuffer.class, new JavaUtilSerializersV2d0.GraphSONByteBufferSerializer());
 
             // need to explicitly add serializers for those types because Jackson doesn't do it at all.
             addSerializer(Integer.class, new GraphSONSerializersV2d0.IntegerGraphSONSerializer());
