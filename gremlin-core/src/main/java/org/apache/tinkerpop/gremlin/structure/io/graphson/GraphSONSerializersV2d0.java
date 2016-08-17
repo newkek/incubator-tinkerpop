@@ -328,18 +328,23 @@ public class GraphSONSerializersV2d0 {
 
         private static void ser(final Tree tree, final JsonGenerator jsonGenerator, final TypeSerializer typeSerializer)
                 throws IOException {
-            writeStartObject(tree, jsonGenerator, typeSerializer);
+            if (typeSerializer != null) {
+                typeSerializer.writeTypePrefixForScalar(tree, jsonGenerator);
+            }
 
+            writeStartArray(tree, jsonGenerator, typeSerializer);
             Set<Map.Entry<Element, Tree>> set = tree.entrySet();
             for (Map.Entry<Element, Tree> entry : set) {
-                jsonGenerator.writeFieldName(entry.getKey().id().toString());
                 writeStartObject(entry, jsonGenerator, typeSerializer);
                 jsonGenerator.writeObjectField(GraphSONTokens.KEY, entry.getKey());
                 jsonGenerator.writeObjectField(GraphSONTokens.VALUE, entry.getValue());
                 writeEndObject(entry, jsonGenerator, typeSerializer);
             }
+            writeEndArray(tree, jsonGenerator, typeSerializer);
 
-            writeEndObject(tree, jsonGenerator, typeSerializer);
+            if (typeSerializer != null) {
+                typeSerializer.writeTypeSuffixForScalar(tree, jsonGenerator);
+            }
         }
     }
 
@@ -718,6 +723,23 @@ public class GraphSONSerializersV2d0 {
                     Math.round((Double) traversalMetricsData.get(GraphSONTokens.DURATION) * 1000000),
                     (List<MutableMetrics>) traversalMetricsData.get(GraphSONTokens.METRICS)
             );
+        }
+    }
+
+    static class TreeJacksonDeserializer extends StdDeserializer<Tree> {
+
+        public TreeJacksonDeserializer() {
+            super(Tree.class);
+        }
+
+        @Override
+        public Tree deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+            List<Map> data = deserializationContext.readValue(jsonParser, List.class);
+            Tree t = new Tree();
+            for (Map<String, Object> entry : data) {
+                t.put(entry.get(GraphSONTokens.KEY), entry.get(GraphSONTokens.VALUE));
+            }
+            return t;
         }
     }
 }

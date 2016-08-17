@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.Tree;
 import org.apache.tinkerpop.gremlin.process.traversal.util.Metrics;
 import org.apache.tinkerpop.gremlin.process.traversal.util.MutableMetrics;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalMetrics;
@@ -428,6 +429,26 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             String json = out.toString();
 
             TraversalMetrics traversalMetricsRead = (TraversalMetrics) reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void deserializersTree() {
+        TinkerGraph tg = TinkerFactory.createModern();
+
+        GraphWriter writer = getWriter(defaultMapperV2d0);
+        GraphReader reader = getReader(defaultMapperV2d0);
+
+        Tree t = tg.traversal().V().out().out().tree().next();
+//        Tree t = tg.traversal().V().out().out().tree().by("name").next();
+
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            writer.writeObject(out, t);
+            String json = out.toString();
+
+            Tree treeRead = (Tree)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
         } catch (IOException e) {
             e.printStackTrace();
         }
