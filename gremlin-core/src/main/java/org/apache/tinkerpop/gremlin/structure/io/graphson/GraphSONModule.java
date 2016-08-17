@@ -20,6 +20,7 @@ package org.apache.tinkerpop.gremlin.structure.io.graphson;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.Tree;
+import org.apache.tinkerpop.gremlin.process.traversal.util.Metrics;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalExplanation;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalMetrics;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -80,6 +81,7 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
             addSerializer(Vertex.class, new GraphSONSerializersV2d0.VertexJacksonSerializer(normalize));
             addSerializer(VertexProperty.class, new GraphSONSerializersV2d0.VertexPropertyJacksonSerializer(normalize));
             addSerializer(Property.class, new GraphSONSerializersV2d0.PropertyJacksonSerializer());
+            addSerializer(Metrics.class, new GraphSONSerializersV2d0.MetricsJacksonSerializer());
             addSerializer(TraversalMetrics.class, new GraphSONSerializersV2d0.TraversalMetricsJacksonSerializer());
             addSerializer(TraversalExplanation.class, new GraphSONSerializersV2d0.TraversalExplanationJacksonSerializer());
             addSerializer(Path.class, new GraphSONSerializersV2d0.PathJacksonSerializer());
@@ -111,12 +113,14 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
 
             /////////////////////// DESERIALIZERS ////////////////////////////
 
-            // graph
+            // Tinkerpop Graph
             addDeserializer(Vertex.class, new GraphSONSerializersV2d0.VertexJacksonDeserializer());
             addDeserializer(Edge.class, new GraphSONSerializersV2d0.EdgeJacksonDeserializer());
             addDeserializer(Property.class, new GraphSONSerializersV2d0.PropertyJacksonDeserializer());
             addDeserializer(Path.class, new GraphSONSerializersV2d0.PathJacksonDeserializer());
             addDeserializer(VertexProperty.class, new GraphSONSerializersV2d0.VertexPropertyJacksonDeserializer());
+            addDeserializer(Metrics.class, new GraphSONSerializersV2d0.MetricsJacksonDeserializer());
+            addDeserializer(TraversalMetrics.class, new GraphSONSerializersV2d0.TraversalMetricsJacksonDeserializer());
 
             // java.time
             addDeserializer(Duration.class, new JavaTimeSerializersV2d0.DurationJacksonDeserializer());
@@ -165,12 +169,14 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
                 put(ZonedDateTime.class, "zoneddatetime");
                 put(ZoneOffset.class, "zoneoffset");
 
-                // Tinkerpop objects
+                // Tinkerpop Graph objects
                 put(Vertex.class, "vertex");
                 put(Edge.class, "edge");
                 put(Property.class, "property");
                 put(Path.class, "path");
                 put(VertexProperty.class, "vertexproperty");
+                put(Metrics.class, "metrics");
+                put(TraversalMetrics.class, "traversalmetrics");
             }};
         }
 

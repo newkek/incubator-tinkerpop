@@ -23,7 +23,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.MutablePath;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.Tree;
+import org.apache.tinkerpop.gremlin.process.traversal.util.DefaultTraversalMetrics;
 import org.apache.tinkerpop.gremlin.process.traversal.util.Metrics;
+import org.apache.tinkerpop.gremlin.process.traversal.util.MutableMetrics;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalExplanation;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalMetrics;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -167,7 +169,6 @@ public class GraphSONSerializersV2d0 {
 
             GraphSONUtil.writeWithType(GraphSONTokens.ID, edge.id(), jsonGenerator, serializerProvider, typeSerializer);
             jsonGenerator.writeStringField(GraphSONTokens.LABEL, edge.label());
-//            jsonGenerator.writeStringField(GraphSONTokens.TYPE, GraphSONTokens.EDGE);
             jsonGenerator.writeStringField(GraphSONTokens.IN_LABEL, edge.inVertex().label());
             jsonGenerator.writeStringField(GraphSONTokens.OUT_LABEL, edge.outVertex().label());
             GraphSONUtil.writeWithType(GraphSONTokens.IN, edge.inVertex().id(), jsonGenerator, serializerProvider, typeSerializer);
@@ -233,7 +234,6 @@ public class GraphSONSerializersV2d0 {
 
             GraphSONUtil.writeWithType(GraphSONTokens.ID, vertex.id(), jsonGenerator, serializerProvider, typeSerializer);
             jsonGenerator.writeStringField(GraphSONTokens.LABEL, vertex.label());
-//            jsonGenerator.writeStringField(GraphSONTokens.TYPE, GraphSONTokens.VERTEX);
             writeProperties(vertex, jsonGenerator, serializerProvider, typeSerializer);
 
             writeEndObject(vertex, jsonGenerator, typeSerializer);
@@ -466,21 +466,41 @@ public class GraphSONSerializersV2d0 {
         @Override
         public void serializeWithType(final TraversalMetrics property, final JsonGenerator jsonGenerator,
                                       final SerializerProvider serializerProvider, final TypeSerializer typeSerializer) throws IOException {
+            typeSerializer.writeTypePrefixForScalar(property, jsonGenerator);
             serializeInternal(property, jsonGenerator);
+            typeSerializer.writeTypeSuffixForScalar(property, jsonGenerator);
         }
 
         private static void serializeInternal(final TraversalMetrics traversalMetrics, final JsonGenerator jsonGenerator) throws IOException {
             // creation of the map enables all the fields to be properly written with their type if required
             final Map<String, Object> m = new HashMap<>();
             m.put(GraphSONTokens.DURATION, traversalMetrics.getDuration(TimeUnit.NANOSECONDS) / 1000000d);
-            final List<Map<String, Object>> metrics = new ArrayList<>();
-            traversalMetrics.getMetrics().forEach(it -> metrics.add(metricsToMap(it)));
+            final List<Metrics> metrics = new ArrayList<>();
+            metrics.addAll(traversalMetrics.getMetrics());
             m.put(GraphSONTokens.METRICS, metrics);
 
             jsonGenerator.writeObject(m);
         }
+    }
 
-        private static Map<String, Object> metricsToMap(final Metrics metrics) {
+    final static class MetricsJacksonSerializer extends StdSerializer<Metrics> {
+        public MetricsJacksonSerializer() {
+            super(Metrics.class);
+        }
+
+        @Override
+        public void serialize(Metrics metrics, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
+            ser(metrics, jsonGenerator);
+        }
+
+        @Override
+        public void serializeWithType(Metrics metrics, JsonGenerator jsonGenerator, SerializerProvider serializerProvider, TypeSerializer typeSerializer) throws IOException {
+            typeSerializer.writeTypePrefixForScalar(metrics, jsonGenerator);
+            ser(metrics, jsonGenerator);
+            typeSerializer.writeTypeSuffixForScalar(metrics, jsonGenerator);
+        }
+
+        private static void ser(final Metrics metrics, final JsonGenerator jsonGenerator) throws IOException {
             final Map<String, Object> m = new HashMap<>();
             m.put(GraphSONTokens.ID, metrics.getId());
             m.put(GraphSONTokens.NAME, metrics.getName());
@@ -490,13 +510,12 @@ public class GraphSONSerializersV2d0 {
             if (!metrics.getAnnotations().isEmpty()) {
                 m.put(GraphSONTokens.ANNOTATIONS, metrics.getAnnotations());
             }
-
             if (!metrics.getNested().isEmpty()) {
-                final List<Map<String, Object>> nested = new ArrayList<>();
-                metrics.getNested().forEach(it -> nested.add(metricsToMap(it)));
+                final List<Metrics> nested = new ArrayList<>();
+                metrics.getNested().forEach(it -> nested.add(it));
                 m.put(GraphSONTokens.METRICS, nested);
             }
-            return m;
+            jsonGenerator.writeObject(m);
         }
     }
 
@@ -587,12 +606,11 @@ public class GraphSONSerializersV2d0 {
 
         @Override
         Vertex createObject(Map<String, Object> vertexData) {
-            final DetachedVertex detached = new DetachedVertex(
+            return new DetachedVertex(
                     vertexData.get(GraphSONTokens.ID),
                     vertexData.get(GraphSONTokens.LABEL).toString(),
                     (Map<String, Object>) vertexData.get(GraphSONTokens.PROPERTIES)
             );
-            return detached;
         }
     }
 
@@ -604,14 +622,13 @@ public class GraphSONSerializersV2d0 {
 
         @Override
         Edge createObject(Map<String, Object> edgeData) {
-            final DetachedEdge detached = new DetachedEdge(
+            return new DetachedEdge(
                     edgeData.get(GraphSONTokens.ID),
                     edgeData.get(GraphSONTokens.LABEL).toString(),
                     (Map) edgeData.get(GraphSONTokens.PROPERTIES),
                     Pair.with(edgeData.get(GraphSONTokens.OUT), edgeData.get(GraphSONTokens.OUT_LABEL).toString()),
                     Pair.with(edgeData.get(GraphSONTokens.IN), edgeData.get(GraphSONTokens.IN_LABEL).toString())
             );
-            return detached;
         }
     }
 
@@ -623,10 +640,9 @@ public class GraphSONSerializersV2d0 {
 
         @Override
         Property createObject(Map<String, Object> propData) {
-            final DetachedProperty detached = new DetachedProperty(
+            return new DetachedProperty(
                     (String) propData.get(GraphSONTokens.KEY),
                     propData.get(GraphSONTokens.VALUE));
-            return detached;
         }
     }
 
@@ -658,13 +674,50 @@ public class GraphSONSerializersV2d0 {
 
         @Override
         VertexProperty createObject(Map<String, Object> propData) {
-            final DetachedVertexProperty detached = new DetachedVertexProperty(
+            return new DetachedVertexProperty(
                     propData.get(GraphSONTokens.ID),
                     (String) propData.get(GraphSONTokens.LABEL),
                     propData.get(GraphSONTokens.VALUE),
                     (Map) propData.get(GraphSONTokens.PROPERTIES)
             );
-            return detached;
+        }
+    }
+
+    static class MetricsJacksonDeserializer extends AbstractGraphObjectDeserializer<Metrics> {
+        public MetricsJacksonDeserializer() {
+            super(Metrics.class);
+        }
+
+        @Override
+        Metrics createObject(Map<String, Object> metricsData) {
+            MutableMetrics m = new MutableMetrics((String)metricsData.get(GraphSONTokens.ID), (String)metricsData.get(GraphSONTokens.NAME));
+
+            m.setDuration(Math.round((Double) metricsData.get(GraphSONTokens.DURATION) * 1000000), TimeUnit.NANOSECONDS);
+            for (Map.Entry<String, Long> count : ((Map<String, Long>)metricsData.getOrDefault(GraphSONTokens.COUNTS, new HashMap<>(0))).entrySet()) {
+                m.setCount(count.getKey(), count.getValue());
+            }
+            for (Map.Entry<String, Long> count : ((Map<String, Long>) metricsData.getOrDefault(GraphSONTokens.ANNOTATIONS, new HashMap<>(0))).entrySet()) {
+                m.setAnnotation(count.getKey(), count.getValue());
+            }
+            for (MutableMetrics nested : (List<MutableMetrics>)metricsData.getOrDefault(GraphSONTokens.METRICS, new ArrayList<>(0))) {
+                m.addNested(nested);
+            }
+            return m;
+        }
+    }
+
+    static class TraversalMetricsJacksonDeserializer extends AbstractGraphObjectDeserializer<TraversalMetrics> {
+
+        public TraversalMetricsJacksonDeserializer() {
+            super(TraversalMetrics.class);
+        }
+
+        @Override
+        TraversalMetrics createObject(Map<String, Object> traversalMetricsData) {
+            return new DefaultTraversalMetrics(
+                    Math.round((Double) traversalMetricsData.get(GraphSONTokens.DURATION) * 1000000),
+                    (List<MutableMetrics>) traversalMetricsData.get(GraphSONTokens.METRICS)
+            );
         }
     }
 }

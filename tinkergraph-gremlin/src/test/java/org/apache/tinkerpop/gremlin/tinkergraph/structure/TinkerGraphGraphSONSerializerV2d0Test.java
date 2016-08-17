@@ -19,6 +19,9 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
+import org.apache.tinkerpop.gremlin.process.traversal.util.Metrics;
+import org.apache.tinkerpop.gremlin.process.traversal.util.MutableMetrics;
+import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalMetrics;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
@@ -377,6 +380,54 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             String json = out.toString();
 
             VertexProperty vPropRead = (VertexProperty)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void deserializersTestsMetrics() {
+        TinkerGraph tg = TinkerFactory.createModern();
+
+        GraphWriter writer = getWriter(defaultMapperV2d0);
+        GraphReader reader = getReader(defaultMapperV2d0);
+
+        TraversalMetrics tm = tg.traversal().V(1).as("a").has("name").as("b").
+                out("knows").out("created").as("c").
+                has("name", "ripple").values("name").as("d").
+                identity().as("e").profile().next();
+
+        MutableMetrics m = new MutableMetrics(tm.getMetrics(0));
+        // making sure nested metrics are included in serde
+        m.addNested(new MutableMetrics(tm.getMetrics(1)));
+
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            writer.writeObject(out, m);
+            String json = out.toString();
+
+            Metrics metricsRead = (Metrics)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void deserializersTestsTraversalMetrics() {
+        TinkerGraph tg = TinkerFactory.createModern();
+
+        GraphWriter writer = getWriter(defaultMapperV2d0);
+        GraphReader reader = getReader(defaultMapperV2d0);
+
+        TraversalMetrics tm = tg.traversal().V(1).as("a").has("name").as("b").
+                out("knows").out("created").as("c").
+                has("name", "ripple").values("name").as("d").
+                identity().as("e").profile().next();
+
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            writer.writeObject(out, tm);
+            String json = out.toString();
+
+            TraversalMetrics traversalMetricsRead = (TraversalMetrics) reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
         } catch (IOException e) {
             e.printStackTrace();
         }
