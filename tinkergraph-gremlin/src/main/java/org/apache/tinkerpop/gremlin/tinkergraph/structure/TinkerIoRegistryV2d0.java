@@ -38,6 +38,7 @@ import org.apache.tinkerpop.shaded.jackson.databind.DeserializationContext;
 import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.jsontype.TypeSerializer;
+import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdScalarSerializer;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 import org.apache.tinkerpop.shaded.kryo.Kryo;
 import org.apache.tinkerpop.shaded.kryo.Serializer;
@@ -143,7 +144,7 @@ public final class TinkerIoRegistryV2d0 extends AbstractIoRegistry {
      * with as a format and doesn't require a cache for loading (as vertex labels are not serialized in adjacency
      * list).
      */
-    final static class TinkerGraphJacksonSerializer extends StdSerializer<TinkerGraph> {
+    final static class TinkerGraphJacksonSerializer extends StdScalarSerializer<TinkerGraph> {
 
         public TinkerGraphJacksonSerializer() {
             super(TinkerGraph.class);
@@ -152,43 +153,26 @@ public final class TinkerIoRegistryV2d0 extends AbstractIoRegistry {
         @Override
         public void serialize(final TinkerGraph graph, final JsonGenerator jsonGenerator, final SerializerProvider serializerProvider)
                 throws IOException {
-            ser(graph, jsonGenerator, serializerProvider, null);
-        }
-
-        @Override
-        public void serializeWithType(final TinkerGraph graph, final JsonGenerator jsonGenerator,
-                                      final SerializerProvider serializerProvider, final TypeSerializer typeSerializer) throws IOException {
-            ser(graph, jsonGenerator, serializerProvider, typeSerializer);
-        }
-
-        private void ser(final TinkerGraph graph, final JsonGenerator jsonGenerator,
-                         final SerializerProvider serializerProvider, final TypeSerializer typeSerializer) throws IOException {
-            if (typeSerializer != null) {
-                typeSerializer.writeTypePrefixForScalar(graph, jsonGenerator);
-            }
-            GraphSONUtil.writeStartObject(graph, jsonGenerator, typeSerializer);
+            jsonGenerator.writeStartObject();
             jsonGenerator.writeFieldName(GraphSONTokens.VERTICES);
-            GraphSONUtil.writeStartArray(graph, jsonGenerator, typeSerializer);
+            jsonGenerator.writeStartArray();
 
             final Iterator<Vertex> vertices = graph.vertices();
             while (vertices.hasNext()) {
                 serializerProvider.defaultSerializeValue(vertices.next(), jsonGenerator);
             }
 
-            GraphSONUtil.writeEndArray(graph, jsonGenerator, typeSerializer);
+            jsonGenerator.writeEndArray();
             jsonGenerator.writeFieldName(GraphSONTokens.EDGES);
-            GraphSONUtil.writeStartArray(graph, jsonGenerator, typeSerializer);
+            jsonGenerator.writeStartArray();
 
             final Iterator<Edge> edges = graph.edges();
             while (edges.hasNext()) {
                 serializerProvider.defaultSerializeValue(edges.next(), jsonGenerator);
             }
 
-            GraphSONUtil.writeEndArray(graph, jsonGenerator, typeSerializer);
-            GraphSONUtil.writeEndObject(graph, jsonGenerator, typeSerializer);
-            if (typeSerializer != null) {
-                typeSerializer.writeTypeSuffixForScalar(graph, jsonGenerator);
-            }
+            jsonGenerator.writeEndArray();
+            jsonGenerator.writeEndObject();
         }
     }
 

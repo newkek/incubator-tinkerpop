@@ -79,7 +79,7 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
             // graph
             addSerializer(Edge.class, new GraphSONSerializersV2d0.EdgeJacksonSerializer(normalize));
             addSerializer(Vertex.class, new GraphSONSerializersV2d0.VertexJacksonSerializer(normalize));
-            addSerializer(VertexProperty.class, new GraphSONSerializersV2d0.VertexPropertyJacksonSerializer(normalize));
+            addSerializer(VertexProperty.class, new GraphSONSerializersV2d0.VertexPropertyJacksonSerializer(normalize, true));
             addSerializer(Property.class, new GraphSONSerializersV2d0.PropertyJacksonSerializer());
             addSerializer(Metrics.class, new GraphSONSerializersV2d0.MetricsJacksonSerializer());
             addSerializer(TraversalMetrics.class, new GraphSONSerializersV2d0.TraversalMetricsJacksonSerializer());

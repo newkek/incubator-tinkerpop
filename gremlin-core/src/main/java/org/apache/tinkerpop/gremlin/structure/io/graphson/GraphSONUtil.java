@@ -84,4 +84,12 @@ public final class GraphSONUtil {
         else
             jsonGenerator.writeEndArray();
     }
+
+    static void safeWriteObjectField(JsonGenerator jsonGenerator, String key, Object value) {
+        try {
+            jsonGenerator.writeObjectField(key, value);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

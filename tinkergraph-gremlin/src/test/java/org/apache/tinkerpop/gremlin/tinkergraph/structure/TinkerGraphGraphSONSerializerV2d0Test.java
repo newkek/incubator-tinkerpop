@@ -344,6 +344,27 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
     }
 
     @Test
+    public void deserializersTestsVertexProperty() {
+        TinkerGraph tg = TinkerGraph.open();
+
+        Vertex v = tg.addVertex("vertexTest");
+
+        GraphWriter writer = getWriter(defaultMapperV2d0);
+        GraphReader reader = getReader(defaultMapperV2d0);
+
+        VertexProperty prop = v.property("born", LocalDateTime.of(1971, 1, 2, 20, 50));
+
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            writer.writeObject(out, prop);
+            String json = out.toString();
+
+            VertexProperty vPropRead = (VertexProperty)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
     public void deserializersTestsPath() {
         TinkerGraph tg = TinkerFactory.createModern();
 
@@ -360,27 +381,6 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             String json = out.toString();
 
             Path pathRead = (Path)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
-    public void deserializersTestsVertexProperty () {
-        TinkerGraph tg = TinkerGraph.open();
-
-        Vertex v = tg.addVertex("vertexTest");
-
-        GraphWriter writer = getWriter(defaultMapperV2d0);
-        GraphReader reader = getReader(defaultMapperV2d0);
-
-        VertexProperty prop = v.property("born", LocalDateTime.of(1971, 1, 2, 20, 50));
-
-        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            writer.writeObject(out, prop);
-            String json = out.toString();
-
-            VertexProperty vPropRead = (VertexProperty)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -428,7 +428,7 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             writer.writeObject(out, tm);
             String json = out.toString();
 
-            TraversalMetrics traversalMetricsRead = (TraversalMetrics) reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+            TraversalMetrics traversalMetricsRead = (TraversalMetrics)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
         } catch (IOException e) {
             e.printStackTrace();
         }
