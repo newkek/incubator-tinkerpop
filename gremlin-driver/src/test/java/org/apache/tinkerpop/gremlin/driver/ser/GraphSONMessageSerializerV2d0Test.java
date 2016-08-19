@@ -235,18 +235,17 @@ public class GraphSONMessageSerializerV2d0Test {
         assertNotNull(converted);
         assertEquals(1, converted.size());
 
-        final JsonNode edgeAsJson = converted.get(0);
+        final JsonNode edgeAsJson = converted.get(0).get(GraphSONTokens.VALUEPROP);
         assertNotNull(edgeAsJson);
 
         assertEquals(((Long) e.id()).longValue(), edgeAsJson.get(GraphSONTokens.ID).get(GraphSONTokens.VALUEPROP).asLong());
         assertEquals(((Long) v1.id()).longValue(), edgeAsJson.get(GraphSONTokens.OUT).get(GraphSONTokens.VALUEPROP).asLong());
         assertEquals(((Long) v2.id()).longValue(), edgeAsJson.get(GraphSONTokens.IN).get(GraphSONTokens.VALUEPROP).asLong());
         assertEquals(e.label(), edgeAsJson.get(GraphSONTokens.LABEL).asText());
-        assertEquals(GraphSONTokens.EDGE, edgeAsJson.get(GraphSONTokens.TYPE).asText());
 
         final JsonNode properties = edgeAsJson.get(GraphSONTokens.PROPERTIES);
         assertNotNull(properties);
-        assertEquals(123, properties.get("abc").get(GraphSONTokens.VALUEPROP).asInt());
+        assertEquals(123, properties.get("abc").get(GraphSONTokens.VALUEPROP).get("value").get(GraphSONTokens.VALUEPROP).asInt());
     }
 
     @Test
@@ -272,7 +271,7 @@ public class GraphSONMessageSerializerV2d0Test {
         final JsonNode propertyAsJson = converted.get(0);
         assertNotNull(propertyAsJson);
 
-        assertEquals(123, propertyAsJson.get("value").get(GraphSONTokens.VALUEPROP).asInt());
+        assertEquals(123, propertyAsJson.get(GraphSONTokens.VALUEPROP).get("value").get(GraphSONTokens.VALUEPROP).asInt());
     }
 
     @Test
@@ -301,7 +300,7 @@ public class GraphSONMessageSerializerV2d0Test {
         assertNotNull(converted);
         assertEquals(1, converted.size());
 
-        final JsonNode vertexAsJson = converted.get(0);
+        final JsonNode vertexAsJson = converted.get(0).get(GraphSONTokens.VALUEPROP);
         assertNotNull(vertexAsJson);
 
         final JsonNode properties = vertexAsJson.get(GraphSONTokens.PROPERTIES);
@@ -310,9 +309,9 @@ public class GraphSONMessageSerializerV2d0Test {
 
         final JsonNode friendProperties = properties.get("friends");
         assertEquals(1, friendProperties.size());
-        final JsonNode friendsProperty = friendProperties.get(0);
+        final JsonNode friendsProperty = friendProperties.get(0).get(GraphSONTokens.VALUEPROP);
         assertNotNull(friendsProperty);
-        assertEquals(3, friends.size());
+        assertEquals(3, friendsProperty.size());
 
         final String object1 = friendsProperty.get(GraphSONTokens.VALUE).get(0).asText();
         assertEquals("x", object1);
@@ -405,7 +404,7 @@ public class GraphSONMessageSerializerV2d0Test {
     }
     
     @Test
-    public void shouldSerializeToJsonTree() throws Exception {
+    public void shouldSerializeToTreeJson() throws Exception {
         final TinkerGraph graph = TinkerFactory.createClassic();
         final GraphTraversalSource g = graph.traversal();
         final Tree t = g.V(1).out().properties("name").tree().next();
@@ -419,30 +418,53 @@ public class GraphSONMessageSerializerV2d0Test {
         assertEquals(msg.getRequestId().toString(), json.get(SerTokens.TOKEN_REQUEST).asText());
         final JsonNode converted = json.get(SerTokens.TOKEN_RESULT).get(SerTokens.TOKEN_DATA);
         assertNotNull(converted);
+
+        //result is: tree{v1=>tree{vp['name'->'vadas']=>null, vp['name'->'lop']=>null, vp['name'->'josh']=>null}}
         
         //check the first object and it's properties
-        assertEquals(1, converted.get("1").get("key").get("id").get(GraphSONTokens.VALUEPROP).asInt());
-        assertEquals("marko", converted.get("1").get("key").get("properties").get("name").get(0).get("value").asText());
-        
-        //check objects tree structure
-        //check Vertex property
-        assertEquals("vadas", converted.get("1")
-                                 .get("value")
-                                 .get("2")
-                                 .get("value")
-                                 .get("3").get("key").get("value").asText());
-        assertEquals("name", converted.get("1")
-                                 .get("value")
-                                 .get("2")
-                                 .get("value")
-                                 .get("3").get("key").get("label").asText());
-        
-        // check subitem
-        assertEquals("lop", converted.get("1")
-                                 .get("value")
-                                 .get("3")
-                                 .get("key")
-                                 .get("properties").get("name").get(0).get("value").asText());
+        assertEquals(1, converted.get(GraphSONTokens.VALUEPROP)
+                .get(0)
+                .get(GraphSONTokens.KEY).get(GraphSONTokens.VALUEPROP)
+                .get(GraphSONTokens.ID).get(GraphSONTokens.VALUEPROP).asInt());
+
+        assertEquals("marko", converted.get(GraphSONTokens.VALUEPROP)
+                .get(0)
+                .get(GraphSONTokens.KEY).get(GraphSONTokens.VALUEPROP)
+                .get(GraphSONTokens.PROPERTIES)
+                .get("name")
+                .get(0).get(GraphSONTokens.VALUEPROP)
+                .get(GraphSONTokens.VALUE).asText());
+
+        //check the leafs
+        assertEquals("vadas", converted.get(GraphSONTokens.VALUEPROP)
+                .get(0)
+                .get(GraphSONTokens.VALUE).get(GraphSONTokens.VALUEPROP)
+                .get(0)
+                .get(GraphSONTokens.KEY).get(GraphSONTokens.VALUEPROP)
+                .get(GraphSONTokens.PROPERTIES)
+                .get("name")
+                .get(0).get(GraphSONTokens.VALUEPROP)
+                .get(GraphSONTokens.VALUE).asText());
+
+        assertEquals("lop", converted.get(GraphSONTokens.VALUEPROP)
+                .get(0)
+                .get(GraphSONTokens.VALUE).get(GraphSONTokens.VALUEPROP)
+                .get(1)
+                .get(GraphSONTokens.KEY).get(GraphSONTokens.VALUEPROP)
+                .get(GraphSONTokens.PROPERTIES)
+                .get("name")
+                .get(0).get(GraphSONTokens.VALUEPROP)
+                .get(GraphSONTokens.VALUE).asText());
+
+        assertEquals("josh", converted.get(GraphSONTokens.VALUEPROP)
+                .get(0)
+                .get(GraphSONTokens.VALUE).get(GraphSONTokens.VALUEPROP)
+                .get(2)
+                .get(GraphSONTokens.KEY).get(GraphSONTokens.VALUEPROP)
+                .get(GraphSONTokens.PROPERTIES)
+                .get("name")
+                .get(0).get(GraphSONTokens.VALUEPROP)
+                .get(GraphSONTokens.VALUE).asText());
     }
 
     private class FunObject {

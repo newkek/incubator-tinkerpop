@@ -48,6 +48,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -267,6 +268,7 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             // Vertex.class would work as well
             // Anything else would not because we check the type in param here with what's in the JSON, for safety.
             Vertex vRead = (Vertex)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+            assertEquals(v, vRead);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -292,6 +294,7 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             // Edge.class would work as well
             // Anything else would not because we check the type in param here with what's in the JSON, for safety.
             Edge eRead = (Edge)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+            assertEquals(ed, eRead);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -313,7 +316,8 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             writer.writeObject(out, tg);
             String json = out.toString();
 
-            Graph eRead = (Graph)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+            Graph gRead = (Graph)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+            assertTrue(approximateGraphsCheck(tg, gRead));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -338,6 +342,9 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             String json = out.toString();
 
             Property pRead = (Property)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+            //can't use equals here, because pRead is detached, its parent element has not been intentionally
+            //serialized and "equals()" checks that.
+            assertTrue(prop.key().equals(pRead.key()) && prop.value().equals(pRead.value()));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -359,6 +366,9 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             String json = out.toString();
 
             VertexProperty vPropRead = (VertexProperty)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+            //only classes and ids are checked, that's ok, full vertex property ser/de
+            //is checked elsewhere.
+            assertEquals(prop, vPropRead);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -381,6 +391,17 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             String json = out.toString();
 
             Path pathRead = (Path)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+
+            for (int i = 0; i < p.objects().size(); i++) {
+                Object o = p.objects().get(i);
+                Object oRead = pathRead.objects().get(i);
+                assertEquals(o, oRead);
+            }
+            for (int i = 0; i < p.labels().size(); i++) {
+                Set<String> o = p.labels().get(i);
+                Set<String> oRead = pathRead.labels().get(i);
+                assertEquals(o, oRead);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -407,6 +428,8 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             String json = out.toString();
 
             Metrics metricsRead = (Metrics)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+            // toString should be enough to compare Metrics
+            assertTrue(m.toString().equals(metricsRead.toString()));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -429,6 +452,8 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
             String json = out.toString();
 
             TraversalMetrics traversalMetricsRead = (TraversalMetrics)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+            // toString should be enough to compare TraversalMetrics
+            assertTrue(tm.toString().equals(traversalMetricsRead.toString()));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -442,13 +467,16 @@ public class TinkerGraphGraphSONSerializerV2d0Test {
         GraphReader reader = getReader(defaultMapperV2d0);
 
         Tree t = tg.traversal().V().out().out().tree().next();
-//        Tree t = tg.traversal().V().out().out().tree().by("name").next();
 
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             writer.writeObject(out, t);
             String json = out.toString();
 
             Tree treeRead = (Tree)reader.readObject(new ByteArrayInputStream(json.getBytes()), Object.class);
+            //Map's equals should check each component of the tree recursively
+            //on each it will call "equals()" which for Vertices will compare ids, which
+            //is ok. Complete vertex deser is checked elsewhere.
+            assertEquals(t, treeRead);
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -152,7 +152,7 @@ public class GraphSONTypeDeserializer extends TypeDeserializerBase {
 
                     if (!baseType.isJavaLangObject() && baseType != typeFromId) {
                         throw new InstantiationException(
-                                String.format("Cannot deserialize the value with the detected type contained in the JSON (\"%s\") " +
+                                String.format("Cannot deserialize the value with the detected type contained in the JSON ('%s') " +
                                         "to the type specified in parameter to the object mapper (%s). " +
                                         "Those types are incompatible.", typeName, baseType.getRawClass().toString())
                         );
@@ -179,9 +179,7 @@ public class GraphSONTypeDeserializer extends TypeDeserializerBase {
                 }
             }
         } catch (Exception e) {
-            // TODO
-            e.printStackTrace();
-            throw deserializationContext.mappingException("Could not deserialize the JSON value as required. Nested exception : " + e.toString());
+            throw deserializationContext.mappingException("Could not deserialize the JSON value as required. Nested exception: " + e.toString());
         }
 
         // While searching for the type pattern, we may have moved the cursor of the original JsonParser in param.

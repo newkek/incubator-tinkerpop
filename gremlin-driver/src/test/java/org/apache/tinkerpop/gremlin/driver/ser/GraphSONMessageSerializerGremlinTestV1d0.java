@@ -36,11 +36,8 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.apache.tinkerpop.shaded.jackson.databind.util.StdDateFormat;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -53,27 +50,17 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 /**
- * Serializer tests that cover non-lossy serialization/deserialization methods.
+ * Serializer tests that cover lossy serialization/deserialization methods.
  *
  * @author Stephen Mallette (http://stephen.genoprime.com)
  */
-@RunWith(Parameterized.class)
-public class GraphSONMessageSerializerGremlinTest {
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-                {new GraphSONMessageSerializerGremlinV1d0()},
-                {new GraphSONMessageSerializerGremlinV2d0()},
-        });
-    }
+public class GraphSONMessageSerializerGremlinTestV1d0 {
 
     private UUID requestId = UUID.fromString("6457272A-4018-4538-B9AE-08DD5DDC0AA1");
     private ResponseMessage.Builder responseMessageBuilder = ResponseMessage.build(requestId);
     private static ByteBufAllocator allocator = UnpooledByteBufAllocator.DEFAULT;
 
-    @Parameterized.Parameter
-    public MessageSerializer serializer;
+    public MessageSerializer serializer = new GraphSONMessageSerializerGremlinV1d0();
 
     @Test
     public void shouldSerializeIterable() throws Exception {
@@ -269,7 +256,7 @@ public class GraphSONMessageSerializerGremlinTest {
     }
 
     @Test
-    public void shouldSerializeToJsonTree() throws Exception {
+    public void shouldSerializeToTreeJson() throws Exception {
         final TinkerGraph graph = TinkerFactory.createClassic();
         final GraphTraversalSource g = graph.traversal();
         final Map t = g.V(1).out().properties("name").tree().next();
@@ -278,15 +265,15 @@ public class GraphSONMessageSerializerGremlinTest {
         assertCommon(response);
 
         final Map<String, Map<String, Map>> deserializedMap = (Map<String, Map<String, Map>>) response.getResult().getData();
-        
+
         assertEquals(1, deserializedMap.size());
-        
+
         //check the first object and it's properties
         Map<String,Object> vertex = deserializedMap.get("1").get("key");
         Map<String,List<Map>> vertexProperties = (Map<String, List<Map>>)vertex.get("properties");
         assertEquals(1, (int)vertex.get("id"));
         assertEquals("marko", vertexProperties.get("name").get(0).get("value"));
-        
+
         //check objects tree structure
         //check Vertex property
         Map<String, Map<String, Map>> subTreeMap =  deserializedMap.get("1").get("value");
@@ -294,11 +281,11 @@ public class GraphSONMessageSerializerGremlinTest {
         Map<String, String> vertexPropertiesDeep = subTreeMap2.get("3").get("key");
         assertEquals("vadas", vertexPropertiesDeep.get("value"));
         assertEquals("name", vertexPropertiesDeep.get("label"));
-        
+
         // check subitem
         Map<String,Object> vertex2 = subTreeMap.get("3").get("key");
         Map<String,List<Map>> vertexProperties2 = (Map<String, List<Map>>)vertex2.get("properties");
-        
+
         assertEquals("lop", vertexProperties2.get("name").get(0).get("value"));
     }
 

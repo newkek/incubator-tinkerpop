@@ -217,7 +217,7 @@ public class GraphSONMapperV2d0PartialEmbeddedTypeTest {
             mapper.readValue(inputStream, Instant.class);
             fail("Should have failed decoding the value");
         } catch (Exception e) {
-            assertThat(e.getMessage(), containsString("Could not deserialize the JSON value as required. Cannot deserialize the value with the detected type contained in the JSON (\""+GraphSONTokens.GREMLIN_TYPE_DOMAIN+":zoneoffset\") to the type specified in parameter to the object mapper (class java.time.Instant). Those types are incompatible."));
+            assertThat(e.getMessage(), containsString("Could not deserialize the JSON value as required. Nested exception: java.lang.InstantiationException: Cannot deserialize the value with the detected type contained in the JSON ('"+GraphSONTokens.GREMLIN_TYPE_DOMAIN+":zoneoffset') to the type specified in parameter to the object mapper (class java.time.Instant). Those types are incompatible."));
         }
     }
 

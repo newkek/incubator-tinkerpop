@@ -157,7 +157,7 @@ public class GraphSONSerializersV2d0 {
 
                 jsonGenerator.writeStartObject();
                 elementProperties.forEachRemaining(
-                        prop -> safeWriteObjectField(jsonGenerator, prop.key(), prop.value())
+                        prop -> safeWriteObjectField(jsonGenerator, prop.key(), prop)
                 );
                 jsonGenerator.writeEndObject();
             }
